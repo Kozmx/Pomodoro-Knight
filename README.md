@@ -1,3 +1,3 @@
-# pomodoro_knight
+# Pomodoro-Knight
 
 A new Flutter project.

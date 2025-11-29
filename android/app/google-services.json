@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1014403393538",
+    "project_id": "pomodoro-knight-ed680",
+    "storage_bucket": "pomodoro-knight-ed680.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1014403393538:android:88dc9c31e9beacec5c9f1b",
+        "android_client_info": {
+          "package_name": "com.example.pomodoro_knight"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDv7LL2wq6MsIkcL_JqzmDBbU2T5zQpIx8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

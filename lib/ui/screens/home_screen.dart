@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pomodoro_knight/logic/navigation/navigation_provider.dart';
 import 'package:pomodoro_knight/ui/screens/pomodoro_screen.dart';
 import 'package:pomodoro_knight/ui/screens/game_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
-
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final List<Widget> _screens = [
     const PomodoroScreen(),
     const GameScreen(),
@@ -20,15 +20,15 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    ref.read(navigationIndexProvider.notifier).setIndex(index);
   }
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = ref.watch(navigationIndexProvider);
+
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: _screens[selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: const Color(0xFF1E1E1E),
@@ -38,14 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedFontSize: 12,
         unselectedFontSize: 12,
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.timer),
-            label: 'Pomodoro',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.gamepad),
-            label: 'Game',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.timer), label: 'Pomodoro'),
+          BottomNavigationBarItem(icon: Icon(Icons.gamepad), label: 'Game'),
           BottomNavigationBarItem(
             icon: Icon(Icons.shopping_bag),
             label: 'Shop',
@@ -55,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Leaderboard',
           ),
         ],
-        currentIndex: _selectedIndex,
+        currentIndex: selectedIndex,
         onTap: _onItemTapped,
       ),
     );

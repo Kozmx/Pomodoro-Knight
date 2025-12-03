@@ -85,4 +85,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'pomodoro-knight-ed680.firebasestorage.app',
     measurementId: 'G-LF6VK5LD1Q',
   );
+
 }

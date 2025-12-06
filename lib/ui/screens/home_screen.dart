@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/logic/navigation/navigation_provider.dart';
 import 'package:pomodoro_knight/ui/screens/pomodoro_screen.dart';
 import 'package:pomodoro_knight/ui/screens/game_screen.dart';
+import 'package:pomodoro_knight/ui/screens/shop_page/shop_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -15,7 +16,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final List<Widget> _screens = [
     const PomodoroScreen(),
     const GameScreen(),
-    const Center(child: Text('Shop Screen Placeholder')),
+    const ShopScreen(),
     const Center(child: Text('Leaderboard Screen Placeholder')),
   ];
 

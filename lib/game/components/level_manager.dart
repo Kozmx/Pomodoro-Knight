@@ -2,11 +2,11 @@ import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:pomodoro_knight/game/components/elevator.dart';
-import 'package:pomodoro_knight/game/components/enemy.dart';
-import 'package:pomodoro_knight/game/components/flying_enemy.dart';
+import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
+import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 enum LevelState { playing, transitioning, bossFight }
 
@@ -28,17 +28,23 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
       print("LevelManager: Error loading level: $e");
       currentLevel = 1;
     }
-    startLevel();
+    // Don't start level automatically here, wait for Start Menu
+    // startLevel();
   }
 
   Future<void> _loadLevel() async {
-    final prefs = await SharedPreferences.getInstance();
-    currentLevel = prefs.getInt('currentLevel') ?? 1;
+    final box = Hive.box('game_data');
+    currentLevel = box.get('currentLevel', defaultValue: 1);
   }
 
   Future<void> _saveLevel() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt('currentLevel', currentLevel);
+    final box = Hive.box('game_data');
+    await box.put('currentLevel', currentLevel);
+
+    final maxLevel = box.get('maxLevel', defaultValue: 1);
+    if (currentLevel > maxLevel) {
+      await box.put('maxLevel', currentLevel);
+    }
   }
 
   void startLevel() {

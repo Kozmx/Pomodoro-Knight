@@ -2,8 +2,8 @@ import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:pomodoro_knight/game/components/player.dart';
-import 'package:pomodoro_knight/game/components/enemy.dart';
-import 'package:pomodoro_knight/game/components/flying_enemy.dart';
+import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
+import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
 
 class Projectile extends PositionComponent with CollisionCallbacks {
   Vector2 velocity;
@@ -12,8 +12,8 @@ class Projectile extends PositionComponent with CollisionCallbacks {
   double lifeTime = 0;
   bool isReflected = false;
 
-  Projectile({required Vector2 position, required this.velocity}) 
-      : super(position: position, size: Vector2(10, 10)) {
+  Projectile({required Vector2 position, required this.velocity})
+    : super(position: position, size: Vector2(10, 10)) {
     anchor = Anchor.center;
   }
 
@@ -24,22 +24,30 @@ class Projectile extends PositionComponent with CollisionCallbacks {
 
   @override
   void render(Canvas canvas) {
-    canvas.drawCircle(Offset(size.x/2, size.y/2), size.x/2, isReflected ? _paintReflected : _paint);
+    canvas.drawCircle(
+      Offset(size.x / 2, size.y / 2),
+      size.x / 2,
+      isReflected ? _paintReflected : _paint,
+    );
   }
 
   @override
   void update(double dt) {
     super.update(dt);
     position += velocity * dt;
-    
+
     lifeTime += dt;
-    if (lifeTime > 3.0) { // Remove after 3 seconds
+    if (lifeTime > 3.0) {
+      // Remove after 3 seconds
       removeFromParent();
     }
   }
-  
+
   @override
-  void onCollisionStart(Set<Vector2> intersectionPoints, PositionComponent other) {
+  void onCollisionStart(
+    Set<Vector2> intersectionPoints,
+    PositionComponent other,
+  ) {
     super.onCollisionStart(intersectionPoints, other);
     if (other is Player) {
       if (other.isShielding) {

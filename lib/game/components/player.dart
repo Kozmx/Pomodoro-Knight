@@ -1,13 +1,28 @@
+import 'dart:ui';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
+import 'package:flame/cache.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/material.dart';
+import 'package:flame/sprite.dart';
+import 'package:flutter/material.dart' hide Image;
 import 'package:pomodoro_knight/game/components/weapon.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 import 'package:pomodoro_knight/game/components/level_manager.dart';
 
-class Player extends PositionComponent with HasGameRef<FocusGame> {
-  static final _paint = Paint()..color = Colors.white;
+enum PlayerState {
+  idle,
+  walk,
+  jump,
+  attack1,
+  attack2,
+  walkAttack1,
+  walkAttack2,
+  hurt,
+  death,
+}
+
+class Player extends SpriteAnimationGroupComponent<PlayerState>
+    with HasGameRef<FocusGame> {
   final JoystickComponent joystick;
 
   Vector2 velocity = Vector2.zero();
@@ -24,17 +39,86 @@ class Player extends PositionComponent with HasGameRef<FocusGame> {
   double currentHealth = 100;
   bool isShielding = false;
 
-  Player({required this.joystick});
+  // Animation Flags
+  bool _isAttacking = false;
+  bool _isHurt = false;
+  bool _isDead = false;
+
+  Player({required this.joystick})
+    : super(size: Vector2(96, 96)); // Adjusted size
 
   @override
   Future<void> onLoad() async {
-    size = Vector2(50, 50);
+    print("Player: onLoad started");
     anchor = Anchor.center;
-    add(RectangleHitbox());
+
+    // Hitbox - Adjusted for 96x96 sprite (scaled 1.5x from 64x64)
+    // Original 64x64 had 24x48 hitbox at 20,16
+    // New 96x96 should have 36x72 hitbox at 30,24
+    add(RectangleHitbox(position: Vector2(30, 24), size: Vector2(36, 72)));
+
+    final images = Images(prefix: 'assets/player/');
+
+    // Load Images
+    final idleImg = await images.load('Idle.png');
+    final walkImg = await images.load('Walk.png');
+    final jumpImg = await images.load('Jump.png');
+    final attack1Img = await images.load('Attack1.png');
+    final attack2Img = await images.load('Attack2.png');
+    final walkAttack1Img = await images.load('WalkAttack1.png');
+    final walkAttack2Img = await images.load('WalkAttack2.png');
+    final hurtImg = await images.load('Hurt.png');
+    final deathImg = await images.load('Death.png');
+
+    print("Player: Images loaded. Idle: ${idleImg.width}x${idleImg.height}");
+
+    // Helper to create animation
+    SpriteAnimation createAnim(
+      Image image, {
+      double stepTime = 0.1,
+      bool loop = true,
+    }) {
+      final frameWidth = image.height.toDouble(); // Assume square frames
+      final frameCount = (image.width / frameWidth).round();
+      final sheet = SpriteSheet(
+        image: image,
+        srcSize: Vector2(frameWidth, frameWidth),
+      );
+      return sheet.createAnimation(
+        row: 0,
+        stepTime: stepTime,
+        to: frameCount,
+        loop: loop,
+      );
+    }
+
+    animations = {
+      PlayerState.idle: createAnim(idleImg),
+      PlayerState.walk: createAnim(walkImg),
+      PlayerState.jump: createAnim(jumpImg),
+      PlayerState.attack1: createAnim(attack1Img, stepTime: 0.08, loop: false),
+      PlayerState.attack2: createAnim(attack2Img, stepTime: 0.08, loop: false),
+      PlayerState.walkAttack1: createAnim(
+        walkAttack1Img,
+        stepTime: 0.08,
+        loop: false,
+      ),
+      PlayerState.walkAttack2: createAnim(
+        walkAttack2Img,
+        stepTime: 0.08,
+        loop: false,
+      ),
+      PlayerState.hurt: createAnim(hurtImg, loop: false),
+      PlayerState.death: createAnim(deathImg, loop: false),
+    };
+
+    current = PlayerState.idle;
   }
 
   @override
   void render(Canvas canvas) {
+    super.render(canvas);
+
     // Shield visual
     if (isShielding) {
       canvas.drawCircle(
@@ -46,16 +130,6 @@ class Player extends PositionComponent with HasGameRef<FocusGame> {
           ..strokeWidth = 3,
       );
     }
-
-    canvas.drawRect(size.toRect(), _paint);
-
-    // Eyes to show direction
-    final eyeOffset = facingRight ? 10.0 : -10.0;
-    canvas.drawCircle(
-      Offset(size.x / 2 + eyeOffset, size.y / 3),
-      4,
-      Paint()..color = Colors.black,
-    );
   }
 
   bool canMove = true;
@@ -64,14 +138,33 @@ class Player extends PositionComponent with HasGameRef<FocusGame> {
   void update(double dt) {
     super.update(dt);
 
+    if (_isDead) {
+      if (animationTicker?.done() == true) {
+        // Maybe show Game Over screen here if not already handled
+      }
+      return;
+    }
+
+    // Handle One-Shot Animations
+    if (_isHurt || _isAttacking) {
+      if (animationTicker?.done() == true) {
+        _isHurt = false;
+        _isAttacking = false;
+        current = PlayerState.idle;
+      } else {
+        // If attacking while moving (WalkAttack), allow movement?
+        // The user said "hitting while running", so yes.
+        // But if it's a standing attack, maybe stop?
+        // For now, let's allow movement logic to run, but maybe reduced speed?
+      }
+    }
+
     if (knockbackTimer > 0) {
       knockbackTimer -= dt;
-      // Apply friction while knocked back
       velocity.x *= 0.9;
     } else if (canMove) {
       // Horizontal movement
       if (joystick.direction != JoystickDirection.idle) {
-        // Reduce speed if shielding
         double currentSpeed = isShielding ? speed * 0.3 : speed;
         velocity.x = joystick.relativeDelta.x * currentSpeed;
 
@@ -81,7 +174,7 @@ class Player extends PositionComponent with HasGameRef<FocusGame> {
         velocity.x = 0;
       }
 
-      // Jump (Up direction)
+      // Jump
       if (joystick.relativeDelta.y < -0.5 && isGrounded) {
         velocity.y = -jumpForce;
         isGrounded = false;
@@ -97,7 +190,6 @@ class Player extends PositionComponent with HasGameRef<FocusGame> {
     position += velocity * dt;
 
     // Ground collision
-    // Zemin seviyesi artık dünya koordinatlarına göre sabit (Background'da çizdiğimiz zemin 800'de başlıyor)
     double floorY = 800;
     if (position.y + size.y / 2 >= floorY) {
       position.y = floorY - size.y / 2;
@@ -105,20 +197,46 @@ class Player extends PositionComponent with HasGameRef<FocusGame> {
       isGrounded = true;
     }
 
-    // World bounds (Sol ve Sağ sınırlar)
+    // World bounds
     if (gameRef.levelManager.state == LevelState.transitioning) {
-      // Restrict to elevator area (Elevator is at center ~1000, width 100)
-      // Allow some wiggle room, say 950 to 1050
       if (position.x < 950) position.x = 950;
       if (position.x > 1050) position.x = 1050;
     } else {
-      if (position.x < size.x / 2) {
-        position.x = size.x / 2;
-      }
-      if (position.x > 2000 - size.x / 2) {
-        // 2000 background genişliği
-        position.x = 2000 - size.x / 2;
-      }
+      if (position.x < size.x / 2) position.x = size.x / 2;
+      if (position.x > 2000 - size.x / 2) position.x = 2000 - size.x / 2;
+    }
+
+    // Update Animation State
+    _updateAnimationState();
+
+    // Flip sprite based on direction
+    if (facingRight) {
+      scale.x = 1;
+    } else {
+      scale.x = -1;
+    }
+  }
+
+  void _updateAnimationState() {
+    if (_isDead) {
+      current = PlayerState.death;
+      return;
+    }
+    if (_isHurt) {
+      current = PlayerState.hurt;
+      return;
+    }
+    if (_isAttacking) {
+      // Current attack state is already set in attack()
+      return;
+    }
+
+    if (!isGrounded) {
+      current = PlayerState.jump;
+    } else if (velocity.x.abs() > 0.1) {
+      current = PlayerState.walk;
+    } else {
+      current = PlayerState.idle;
     }
   }
 
@@ -127,15 +245,19 @@ class Player extends PositionComponent with HasGameRef<FocusGame> {
   }
 
   void takeDamage(double amount, Vector2 sourcePosition) {
-    if (isShielding) {
-      // Block damage, maybe slight pushback?
-      return;
-    }
+    if (isShielding) return;
 
     currentHealth -= amount;
     if (currentHealth <= 0) {
       currentHealth = 0;
-      // Game Over logic handled in FocusGame update or via callback
+      _isDead = true;
+      current = PlayerState.death;
+      animationTicker?.reset();
+    } else {
+      _isHurt = true;
+      _isAttacking = false;
+      current = PlayerState.hurt;
+      animationTicker?.reset();
     }
 
     takeKnockback(sourcePosition);
@@ -145,31 +267,45 @@ class Player extends PositionComponent with HasGameRef<FocusGame> {
     if (knockbackTimer > 0) return;
 
     Vector2 direction = (position - sourcePosition).normalized();
-
-    // Prevent vertical-only knockback (bouncing on top)
-    // If the horizontal direction is too weak, force a minimum push to the side
     if (direction.x.abs() < 0.5) {
       double sign = direction.x.sign;
-      if (sign == 0) sign = 1; // Default to right if exactly vertical
+      if (sign == 0) sign = 1;
       direction.x = sign * 0.5;
       direction.normalize();
     }
 
     if (isShielding) {
-      // Reduced knockback when shielding
       velocity = Vector2(direction.x * 200, -60);
       knockbackTimer = 0.15;
     } else {
-      // Normal knockback up and away
       velocity = Vector2(direction.x * 400, -120);
-      knockbackTimer = 0.3; // Disable controls briefly
+      knockbackTimer = 0.3;
     }
   }
 
   void attack() {
-    // Spawn weapon in front of player
+    if (_isDead || _isHurt || _isAttacking) return;
+
+    _isAttacking = true;
+
+    // Choose attack animation based on movement
+    if (velocity.x.abs() > 0.1) {
+      // Moving attack
+      // Randomly choose between WalkAttack1 and WalkAttack2
+      current = (DateTime.now().millisecond % 2 == 0)
+          ? PlayerState.walkAttack1
+          : PlayerState.walkAttack2;
+    } else {
+      // Standing attack
+      current = (DateTime.now().millisecond % 2 == 0)
+          ? PlayerState.attack1
+          : PlayerState.attack2;
+    }
+
+    animationTicker?.reset();
+
+    // Spawn weapon logic (keep existing)
     final weaponSize = Vector2(40, 40);
-    // Adjusted Y offset to -15 to move it up
     final weaponPosition =
         position.clone() +
         Vector2(facingRight ? size.x / 2 : -size.x / 2 - weaponSize.x, -15);

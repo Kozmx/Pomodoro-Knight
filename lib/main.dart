@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/ui/screens/home_screen.dart';
 
-void main() {
+import 'package:hive_flutter/hive_flutter.dart';
+
+void main() async {
+  await Hive.initFlutter();
+  await Hive.openBox('game_data');
   runApp(const ProviderScope(child: MainApp()));
 }
 
@@ -24,4 +28,3 @@ class MainApp extends StatelessWidget {
     );
   }
 }
-

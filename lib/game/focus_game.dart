@@ -5,8 +5,8 @@ import 'package:flame/input.dart';
 import 'package:flutter/material.dart';
 import 'package:pomodoro_knight/game/components/player.dart';
 import 'package:pomodoro_knight/game/components/background.dart';
-import 'package:pomodoro_knight/game/components/enemy.dart';
-import 'package:pomodoro_knight/game/components/flying_enemy.dart';
+import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
+import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
 import 'package:pomodoro_knight/game/components/health_bar.dart';
 import 'package:pomodoro_knight/game/components/level_indicator.dart';
 import 'package:pomodoro_knight/game/components/level_manager.dart';
@@ -92,6 +92,10 @@ class FocusGame extends FlameGame with HasCollisionDetection {
     camera.setBounds(
       Rectangle.fromLTRB(0, 0, background.size.x, background.size.y),
     );
+
+    // Show Start Menu initially
+    overlays.add('StartMenu');
+    pauseEngine();
   }
 
   @override
@@ -113,6 +117,12 @@ class FocusGame extends FlameGame with HasCollisionDetection {
     }
   }
 
+  void startGame() {
+    overlays.remove('StartMenu');
+    resumeEngine();
+    levelManager.startLevel();
+  }
+
   void resetGame() {
     player.currentHealth = player.maxHealth;
     player.position = Vector2(1000, 750);
@@ -125,8 +135,7 @@ class FocusGame extends FlameGame with HasCollisionDetection {
     );
     world.children.whereType<Elevator>().forEach((e) => e.removeFromParent());
 
-    // Reset Level Manager
-    levelManager.currentLevel = 1;
+    // Restart current level
     levelManager.startLevel();
 
     overlays.remove('GameOver');

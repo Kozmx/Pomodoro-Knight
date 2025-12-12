@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pomodoro_knight/game/components/player.dart';
 import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
+import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
 
 class Projectile extends PositionComponent with CollisionCallbacks {
   Vector2 velocity;
@@ -66,6 +67,9 @@ class Projectile extends PositionComponent with CollisionCallbacks {
         other.takeDamage();
         removeFromParent();
       } else if (other is FlyingEnemy) {
+        other.takeDamage();
+        removeFromParent();
+      } else if (other is FlowerEnemy) {
         other.takeDamage();
         removeFromParent();
       }

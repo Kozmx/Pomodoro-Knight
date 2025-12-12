@@ -8,10 +8,10 @@ import 'package:pomodoro_knight/game/components/player.dart';
 import 'package:pomodoro_knight/game/components/background.dart';
 import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
+import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
 import 'package:pomodoro_knight/game/components/health_bar.dart';
 import 'package:pomodoro_knight/game/components/level_indicator.dart';
 import 'package:pomodoro_knight/game/components/level_manager.dart';
-import 'package:pomodoro_knight/game/components/elevator.dart';
 
 // ===================== TEST MODU =====================
 // Bu bölümü silmek için "TEST:" araması yap ve kaldır
@@ -179,6 +179,16 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
     _keysPressed.clear();
     _keysPressed.addAll(keysPressed);
     
+    // X tuşu ile kalkan (basılı tutunca açık)
+    if (event.logicalKey == LogicalKeyboardKey.keyX) {
+      if (event is KeyDownEvent) {
+        player.setShield(true);
+      } else if (event is KeyUpEvent) {
+        player.setShield(false);
+      }
+      return KeyEventResult.handled;
+    }
+    
     // Space tuşu ile saldırı
     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.space) {
       player.attack();
@@ -240,16 +250,18 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
     _isGameOver = false;
     _gameOverTimer = 0;
     
-    player.currentHealth = player.maxHealth;
+    // Oyuncuyu yeniden canlandır
+    player.respawn();
     player.position = Vector2(1000, 750);
-    player.velocity = Vector2.zero();
 
-    // Remove existing enemies and respawn
+    // Remove existing enemies (yapılar startLevel içinde temizleniyor)
     world.children.whereType<Enemy>().forEach((e) => e.removeFromParent());
     world.children.whereType<FlyingEnemy>().forEach(
       (e) => e.removeFromParent(),
     );
-    world.children.whereType<Elevator>().forEach((e) => e.removeFromParent());
+    world.children.whereType<FlowerEnemy>().forEach(
+      (e) => e.removeFromParent(),
+    );
 
     // Restart current level
     levelManager.startLevel();

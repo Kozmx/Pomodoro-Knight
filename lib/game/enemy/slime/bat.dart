@@ -152,17 +152,18 @@ class FlyingEnemy extends SpriteAnimationGroupComponent<BatState>
 
     if (distance <= detectionRange) {
       isChasing = true;
-      // Hover logic
-      double targetY = player.position.y - 80;
+      // Hover logic - oyuncunun biraz üstünde sabit dur, çok hızlı kaçmasın
+      double targetY = player.position.y - 100; // Biraz daha yukarıda
       double targetX = player.position.x;
 
       Vector2 targetPos = Vector2(targetX, targetY);
       Vector2 direction = (targetPos - position);
       double distToTarget = direction.length;
 
-      double moveSpeed = 150.0;
+      // Daha yavaş hareket - vurması kolay olsun
+      double moveSpeed = 60.0; // 150'den 60'a düşürüldü
 
-      if (distToTarget > 5) {
+      if (distToTarget > 30) { // 5'ten 30'a - daha erken durur
         direction.normalize();
         position += direction * moveSpeed * dt;
       }

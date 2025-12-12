@@ -34,6 +34,9 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
   double knockbackTimer = 0.0;
 
+  // TEST: Klavye girişi için
+  Vector2 testInput = Vector2.zero();
+
   // Health & Shield
   double maxHealth = 100;
   double currentHealth = 100;
@@ -57,18 +60,18 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     // New 96x96 should have 36x72 hitbox at 30,24
     add(RectangleHitbox(position: Vector2(30, 24), size: Vector2(36, 72)));
 
-    final images = Images(prefix: 'assets/player/');
+    final images = Images(prefix: 'assets/');
 
     // Load Images
-    final idleImg = await images.load('Idle.png');
-    final walkImg = await images.load('Walk.png');
-    final jumpImg = await images.load('Jump.png');
-    final attack1Img = await images.load('Attack1.png');
-    final attack2Img = await images.load('Attack2.png');
-    final walkAttack1Img = await images.load('WalkAttack1.png');
-    final walkAttack2Img = await images.load('WalkAttack2.png');
-    final hurtImg = await images.load('Hurt.png');
-    final deathImg = await images.load('Death.png');
+    final idleImg = await images.load('player/Idle.png');
+    final walkImg = await images.load('player/Walk.png');
+    final jumpImg = await images.load('player/Jump.png');
+    final attack1Img = await images.load('player/Attack1.png');
+    final attack2Img = await images.load('player/Attack2.png');
+    final walkAttack1Img = await images.load('player/WalkAttack1.png');
+    final walkAttack2Img = await images.load('player/WalkAttack2.png');
+    final hurtImg = await images.load('player/Hurt.png');
+    final deathImg = await images.load('player/Death.png');
 
     print("Player: Images loaded. Idle: ${idleImg.width}x${idleImg.height}");
 
@@ -163,10 +166,17 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
       knockbackTimer -= dt;
       velocity.x *= 0.9;
     } else if (canMove) {
-      // Horizontal movement
-      if (joystick.direction != JoystickDirection.idle) {
+      // Horizontal movement - joystick veya test input
+      Vector2 input = joystick.relativeDelta;
+      
+      // TEST: Klavye girişi varsa onu kullan
+      if (testInput.length > 0) {
+        input = testInput;
+      }
+      
+      if (input.x.abs() > 0.1 || joystick.direction != JoystickDirection.idle) {
         double currentSpeed = isShielding ? speed * 0.3 : speed;
-        velocity.x = joystick.relativeDelta.x * currentSpeed;
+        velocity.x = input.x * currentSpeed;
 
         if (velocity.x > 0) facingRight = true;
         if (velocity.x < 0) facingRight = false;
@@ -174,8 +184,8 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
         velocity.x = 0;
       }
 
-      // Jump
-      if (joystick.relativeDelta.y < -0.5 && isGrounded) {
+      // Jump - joystick veya test input
+      if ((joystick.relativeDelta.y < -0.5 || testInput.y < -0.5) && isGrounded) {
         velocity.y = -jumpForce;
         isGrounded = false;
       }

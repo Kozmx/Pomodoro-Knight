@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:pomodoro_knight/game/components/background.dart';
 import 'package:pomodoro_knight/game/components/elevator.dart';
 import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
@@ -132,7 +133,7 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
   void _spawnElevator() {
     // Spawn elevator in the middle of the map
     final elevator = Elevator()
-      ..position = Vector2(gameRef.background.size.x / 2, 750);
+      ..position = Vector2(GameBackground.worldWidth / 2, 750);
     gameRef.world.add(elevator);
 
     // Optional: Show a message or indicator
@@ -149,10 +150,14 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     gameRef.add(_ZoomEffect(2.0, 2.0, curve: Curves.easeInOut));
 
     // 2. Animate Background (Simulate going up)
-    gameRef.background.scrollSpeed = 500.0; // Speed up stars downwards
+    // gameRef.background.scrollSpeed = 500.0; // Disabled for static background
 
-    // 3. Show Menu
-    gameRef.overlays.add('ElevatorMenu');
+    // 3. Show Menu after 2 seconds (asansör animasyonu için bekle)
+    Future.delayed(const Duration(seconds: 2), () {
+      if (state == LevelState.transitioning) {
+        gameRef.overlays.add('ElevatorMenu');
+      }
+    });
   }
 
   void continueToNextLevel() {
@@ -167,7 +172,7 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     _saveLevel();
 
     // Reset Background
-    gameRef.background.scrollSpeed = 0.0;
+    // gameRef.background.scrollSpeed = 0.0;
 
     // Remove Elevator
     gameRef.world.children.whereType<Elevator>().forEach(

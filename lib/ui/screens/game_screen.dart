@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 import 'package:pomodoro_knight/logic/navigation/navigation_provider.dart';
 
+import 'package:pomodoro_knight/game/components/start_menu.dart';
+
 class GameScreen extends ConsumerWidget {
   const GameScreen({super.key});
 
@@ -13,6 +15,14 @@ class GameScreen extends ConsumerWidget {
       body: GameWidget<FocusGame>(
         game: FocusGame(),
         overlayBuilderMap: {
+          'StartMenu': (BuildContext context, FocusGame game) {
+            return StartMenu(
+              game: game,
+              onStart: () {
+                game.startGame();
+              },
+            );
+          },
           'ElevatorMenu': (BuildContext context, FocusGame game) {
             return Center(
               child: Container(

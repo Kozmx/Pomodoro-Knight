@@ -20,16 +20,16 @@ class LevelIndicator extends TextComponent with HasGameRef<FocusGame> {
 
   @override
   Future<void> onLoad() async {
-    // Position at top center
-    anchor = Anchor.topCenter;
-    position = Vector2(gameRef.size.x / 2, 50);
+    // Position at top right
+    anchor = Anchor.topRight;
+    position = Vector2(gameRef.size.x - 20, 50);
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    // Keep it centered if screen resizes (optional)
-    position.x = gameRef.size.x / 2;
+    // Keep it at right side if screen resizes
+    position.x = gameRef.size.x - 20;
 
     // Update text from LevelManager
     text = 'Floor: ${gameRef.levelManager.currentLevel}';

@@ -257,7 +257,8 @@ class Enemy extends SpriteAnimationGroupComponent<SlimeState>
   void onCollision(Set<Vector2> intersectionPoints, PositionComponent other) {
     super.onCollision(intersectionPoints, other);
     if (other is Player && !_isDead && !_isHurt && !_isAttacking) {
-      other.takeKnockback(position);
+      // Hasar ver (takeDamage içinde knockback da var)
+      other.takeDamage(damage, position);
 
       // Trigger Attack Animation
       _isAttacking = true;

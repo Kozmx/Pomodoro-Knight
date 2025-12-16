@@ -1,9 +1,11 @@
 import 'dart:math';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:pomodoro_knight/game/components/background.dart';
 import 'package:pomodoro_knight/game/components/elevator.dart';
 import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
+import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
@@ -47,24 +49,205 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     }
   }
 
+  // Rampa başlangıç X pozisyonu (sabit)
+  static const double rampStartX = 1200; // Mapin ortasının biraz sağı
+  static const double platformY = 600;
+  
+  // Asansör spawn edildi mi?
+  bool _elevatorSpawned = false;
+
   void startLevel() {
     print("LevelManager: startLevel called for level $currentLevel");
     state = LevelState.playing;
     enemiesKilled = 0;
+    _elevatorSpawned = false;
+    
+    // Canı fulle
+    gameRef.player.currentHealth = gameRef.player.maxHealth;
 
     // Calculate enemies for this level (simple progression)
     int enemyCount = 2 + currentLevel;
     int flyingEnemyCount = 1 + (currentLevel ~/ 2);
-    totalEnemies = enemyCount + flyingEnemyCount;
+    int flowerCount = currentLevel ~/ 2; // Her 2 levelde 1 çiçek
+    totalEnemies = enemyCount + flyingEnemyCount + flowerCount;
 
     print(
-      "LevelManager: Spawning $enemyCount ground and $flyingEnemyCount flying enemies",
+      "LevelManager: Spawning $enemyCount ground, $flyingEnemyCount flying, $flowerCount flower enemies",
     );
 
-    _spawnEnemies(enemyCount, flyingEnemyCount);
+    // Rampa, platform ve kapıyı spawn et (asansör hariç - düşmanlar ölünce gelecek)
+    _spawnStructures();
+    
+    _spawnEnemies(enemyCount, flyingEnemyCount, flowerCount);
+    
+    // Oyuncuyu platformda spawn et
+    _spawnPlayerOnPlatform();
   }
 
-  void _spawnEnemies(int ground, int flying) {
+  void _spawnPlayerOnPlatform() {
+    // Oyuncuyu platform üzerinde spawn et (sağ tarafta)
+    final spawnX = GameBackground.worldWidth - 150;
+    final spawnY = platformY - gameRef.player.size.y / 2 - 10;
+    gameRef.player.position = Vector2(spawnX, spawnY);
+    gameRef.player.velocity = Vector2.zero();
+    gameRef.player.canMove = true;
+  }
+
+  // Rastgele oluşturulan platformların pozisyonları (çiçekler için)
+  List<Vector2> _platformPositions = [];
+
+  void _spawnStructures() {
+    // Önce eski yapıları temizle
+    gameRef.world.children.whereType<Ramp>().forEach((e) => e.removeFromParent());
+    gameRef.world.children.whereType<Platform>().forEach((e) => e.removeFromParent());
+    gameRef.world.children.whereType<Elevator>().forEach((e) => e.removeFromParent());
+    
+    // Platform pozisyonlarını temizle
+    _platformPositions.clear();
+    
+    // ===== ANA RAMPA VE PLATFORM (sağ taraf - asansör için) =====
+    // Rampa: yerden platforma çıkış
+    final ramp = Ramp(
+      startPos: Vector2(rampStartX, 800),
+      endPos: Vector2(rampStartX + 300, platformY),
+    );
+    gameRef.world.add(ramp);
+    
+    // Platform: rampa ucundan mapin sağ sonuna kadar
+    final platformStartX = rampStartX + 300;
+    final platformWidth = GameBackground.worldWidth - platformStartX - 20;
+    final platform = Platform(
+      pos: Vector2(platformStartX, platformY),
+      width: platformWidth,
+    );
+    gameRef.world.add(platform);
+    
+    // ===== RASTGELE PLATFORMLAR (savaş alanında - sol taraf) =====
+    _spawnRandomPlatforms();
+    
+    // Asansör BAŞLANGIÇTA YOK - düşmanlar ölünce spawn olacak
+  }
+  
+  void _spawnRandomPlatforms() {
+    // Karakter fizik değerleri (player.dart'tan)
+    const double jumpForce = 500;
+    const double gravity = 1000;
+    // Maksimum zıplama yüksekliği: h = v² / (2g) = 500² / 2000 = 125 piksel
+    const double maxJumpHeight = (jumpForce * jumpForce) / (2 * gravity);
+    const double safeJumpHeight = maxJumpHeight * 0.85; // ~106 piksel - platformlar arası güvenli mesafe
+    
+    // Platform sayısı: 3-5 arası
+    final platformCount = 3 + _rnd.nextInt(3); // 3, 4 veya 5
+    
+    // Platform spawn alanı
+    final minX = 80.0;
+    final maxX = rampStartX - 150; // Rampa öncesi
+    
+    // Y pozisyonları - yerden (800) yukarı doğru
+    final groundY = 800.0;
+    
+    // Minimum platform arası X mesafesi (zıplayarak geçilebilir)
+    final minXDistance = 100.0;
+    final maxXDistance = 250.0; // Çok uzak olmasın
+    
+    // Platformları oluştur - merdiven mantığı ile
+    // İLK platform yerden zıplanabilir olmalı
+    // Sonraki platformlar bir öncekinden zıplanabilir olmalı
+    
+    List<Vector2> platformCenters = []; // Platform merkezleri (zıplama mesafesi kontrolü için)
+    
+    // İlk platform - yerden zıplanabilir (safeJumpHeight içinde)
+    double firstY = groundY - 70 - _rnd.nextDouble() * (safeJumpHeight - 80);
+    double firstX = minX + _rnd.nextDouble() * (maxX - minX - 200);
+    double firstWidth = 140 + _rnd.nextDouble() * 80;
+    
+    final firstPlatform = Platform(pos: Vector2(firstX, firstY), width: firstWidth);
+    gameRef.world.add(firstPlatform);
+    platformCenters.add(Vector2(firstX + firstWidth / 2, firstY));
+    _platformPositions.add(Vector2(firstX + firstWidth / 2, firstY));
+    print("LevelManager: Platform 1 at (${firstX.toInt()}, ${firstY.toInt()}) - yerden zıplanabilir");
+    
+    // Sonraki platformlar - bir öncekinden zıplanabilir mesafede
+    for (int i = 1; i < platformCount; i++) {
+      Vector2 pos;
+      double width;
+      int attempts = 0;
+      bool validPosition = false;
+      
+      do {
+        // Önceki platformlardan birine zıplanabilir mesafede olmalı
+        final targetPlatform = platformCenters[_rnd.nextInt(platformCenters.length)];
+        
+        // X pozisyonu: önceki platformdan 100-250 piksel uzakta (sağ veya sol)
+        final xOffset = (minXDistance + _rnd.nextDouble() * (maxXDistance - minXDistance)) * 
+                        (_rnd.nextBool() ? 1 : -1);
+        double x = targetPlatform.x + xOffset;
+        
+        // Sınırları kontrol et
+        if (x < minX) x = minX + _rnd.nextDouble() * 100;
+        if (x > maxX) x = maxX - _rnd.nextDouble() * 100 - 150;
+        
+        // Y pozisyonu: önceki platformdan safeJumpHeight içinde (yukarı veya aşağı)
+        // Ama yerden de zıplanabilir veya başka platformdan zıplanabilir olmalı
+        final yOffset = (_rnd.nextDouble() * safeJumpHeight * 0.9) * 
+                        (_rnd.nextBool() ? 1 : -1);
+        double y = targetPlatform.y + yOffset;
+        
+        // Y sınırları
+        if (y > groundY - 70) y = groundY - 70 - _rnd.nextDouble() * 30;
+        if (y < 450) y = 450 + _rnd.nextDouble() * 50;
+        
+        pos = Vector2(x, y);
+        width = 120 + _rnd.nextDouble() * 80;
+        
+        // Geçerlilik kontrolü
+        validPosition = true;
+        
+        // 1. En az bir platformdan zıplanabilir olmalı
+        bool reachableFromAny = false;
+        for (final existingCenter in platformCenters) {
+          final xDist = (pos.x + width/2 - existingCenter.x).abs();
+          final yDist = (pos.y - existingCenter.y).abs();
+          
+          // Zıplanabilir mesafe: Y farkı safeJumpHeight içinde VE X farkı makul
+          if (yDist <= safeJumpHeight && xDist <= maxXDistance + width) {
+            reachableFromAny = true;
+            break;
+          }
+        }
+        
+        // VEYA yerden zıplanabilir
+        if (pos.y >= groundY - safeJumpHeight) {
+          reachableFromAny = true;
+        }
+        
+        if (!reachableFromAny) {
+          validPosition = false;
+        }
+        
+        // 2. Diğer platformlarla çakışma kontrolü
+        for (final existingCenter in platformCenters) {
+          final dist = (pos + Vector2(width/2, 0)).distanceTo(existingCenter);
+          if (dist < 100) { // Çok yakın olmasın
+            validPosition = false;
+            break;
+          }
+        }
+        
+        attempts++;
+      } while (!validPosition && attempts < 30);
+      
+      if (validPosition) {
+        final newPlatform = Platform(pos: pos, width: width);
+        gameRef.world.add(newPlatform);
+        platformCenters.add(Vector2(pos.x + width / 2, pos.y));
+        _platformPositions.add(Vector2(pos.x + width / 2, pos.y));
+        print("LevelManager: Platform ${i+1} at (${pos.x.toInt()}, ${pos.y.toInt()})");
+      }
+    }
+  }
+
+  void _spawnEnemies(int ground, int flying, int flowers) {
     final playerPos = gameRef.player.position;
     final minDistance = 400.0;
 
@@ -74,12 +257,16 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     final double enemyHealth = 30.0 + (currentLevel - 1) * 10.0;
     final double enemyDamage = 10.0 + (currentLevel - 1) * 2.0;
 
+    // Düşmanların spawn olabileceği alan (rampa/platform bölgesi HARİÇ)
+    // Rampa x=1200'de başlıyor, onun solunda spawn olsunlar
+    final double maxSpawnX = rampStartX - 100; // Rampa öncesine kadar
+
     // Spawn Ground Enemies
     for (int i = 0; i < ground; i++) {
       Vector2 spawnPos;
       int attempts = 0;
       do {
-        spawnPos = Vector2(100 + _rnd.nextDouble() * 1800, 750);
+        spawnPos = Vector2(100 + _rnd.nextDouble() * (maxSpawnX - 100), 750);
         attempts++;
       } while (spawnPos.distanceTo(playerPos) < minDistance && attempts < 20);
 
@@ -102,7 +289,7 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
       int attempts = 0;
       do {
         spawnPos = Vector2(
-          100 + _rnd.nextDouble() * 1800,
+          100 + _rnd.nextDouble() * (maxSpawnX - 100),
           300 + _rnd.nextDouble() * 300,
         );
         attempts++;
@@ -120,6 +307,21 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
         )..position = spawnPos,
       );
     }
+    
+    // Spawn Flower Enemies (rastgele oluşturulan platformların üzerinde)
+    for (int i = 0; i < flowers && i < _platformPositions.length; i++) {
+      final spawnPos = _platformPositions[i].clone();
+      
+      print("LevelManager: Spawning Flower Enemy at $spawnPos");
+
+      gameRef.world.add(
+        FlowerEnemy(
+          player: gameRef.player,
+          maxHealth: enemyHealth * 0.7, // Çiçekler daha az HP
+          damage: enemyDamage * 0.8,
+        )..position = spawnPos,
+      );
+    }
   }
 
   void onEnemyKilled() {
@@ -130,12 +332,15 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
   }
 
   void _spawnElevator() {
-    // Spawn elevator in the middle of the map
-    final elevator = Elevator()
-      ..position = Vector2(gameRef.background.size.x / 2, 750);
-    gameRef.world.add(elevator);
-
-    // Optional: Show a message or indicator
+    // Asansörü spawn et (sadece bir kere)
+    if (!_elevatorSpawned) {
+      _elevatorSpawned = true;
+      final elevatorX = GameBackground.worldWidth - 80;
+      final elevator = Elevator()
+        ..position = Vector2(elevatorX, platformY);
+      gameRef.world.add(elevator);
+      print("LevelManager: Elevator spawned!");
+    }
   }
 
   void startAscension() {
@@ -149,10 +354,14 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     gameRef.add(_ZoomEffect(2.0, 2.0, curve: Curves.easeInOut));
 
     // 2. Animate Background (Simulate going up)
-    gameRef.background.scrollSpeed = 500.0; // Speed up stars downwards
+    // gameRef.background.scrollSpeed = 500.0; // Disabled for static background
 
-    // 3. Show Menu
-    gameRef.overlays.add('ElevatorMenu');
+    // 3. Show Menu after 2 seconds (asansör animasyonu için bekle)
+    Future.delayed(const Duration(seconds: 2), () {
+      if (state == LevelState.transitioning) {
+        gameRef.overlays.add('ElevatorMenu');
+      }
+    });
   }
 
   void continueToNextLevel() {
@@ -166,26 +375,10 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     currentLevel++;
     _saveLevel();
 
-    // Reset Background
-    gameRef.background.scrollSpeed = 0.0;
-
-    // Remove Elevator
-    gameRef.world.children.whereType<Elevator>().forEach(
-      (e) => e.removeFromParent(),
-    );
-
-    // Start new level
+    // Start new level (bu fonksiyon içinde yapılar temizlenip yenileri ekleniyor + oyuncu platformda spawn)
     startLevel();
 
-    // Reset player position to center
-    gameRef.player.position = Vector2(1000, 750);
-
-    // Re-enable player movement immediately
-    gameRef.player.canMove = true;
-
     // Zoom Out (Smoothly)
-    // Ensure we start from the zoomed in state logically if needed,
-    // but the effect works from current zoom.
     gameRef.add(_ZoomEffect(1.0, 1.5, curve: Curves.easeOut));
   }
 }

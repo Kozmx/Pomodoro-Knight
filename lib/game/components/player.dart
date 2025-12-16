@@ -7,6 +7,7 @@ import 'package:flutter/material.dart' hide Image;
 import 'package:pomodoro_knight/game/components/weapon.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 import 'package:pomodoro_knight/game/components/level_manager.dart';
+import 'package:pomodoro_knight/game/components/elevator.dart';
 
 enum PlayerState {
   idle,
@@ -33,6 +34,9 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
   double knockbackTimer = 0.0;
 
+  // TEST: Klavye girişi için
+  Vector2 testInput = Vector2.zero();
+
   // Health & Shield
   double maxHealth = 100;
   double currentHealth = 100;
@@ -56,18 +60,18 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     // New 96x96 should have 36x72 hitbox at 30,24
     add(RectangleHitbox(position: Vector2(30, 24), size: Vector2(36, 72)));
 
-    final images = Images(prefix: 'assets/player/');
+    final images = Images(prefix: 'assets/');
 
     // Load Images
-    final idleImg = await images.load('Idle.png');
-    final walkImg = await images.load('Walk.png');
-    final jumpImg = await images.load('Jump.png');
-    final attack1Img = await images.load('Attack1.png');
-    final attack2Img = await images.load('Attack2.png');
-    final walkAttack1Img = await images.load('WalkAttack1.png');
-    final walkAttack2Img = await images.load('WalkAttack2.png');
-    final hurtImg = await images.load('Hurt.png');
-    final deathImg = await images.load('Death.png');
+    final idleImg = await images.load('player/Idle.png');
+    final walkImg = await images.load('player/Walk.png');
+    final jumpImg = await images.load('player/Jump.png');
+    final attack1Img = await images.load('player/Attack1.png');
+    final attack2Img = await images.load('player/Attack2.png');
+    final walkAttack1Img = await images.load('player/WalkAttack1.png');
+    final walkAttack2Img = await images.load('player/WalkAttack2.png');
+    final hurtImg = await images.load('player/Hurt.png');
+    final deathImg = await images.load('player/Death.png');
 
     print("Player: Images loaded. Idle: ${idleImg.width}x${idleImg.height}");
 
@@ -162,10 +166,17 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
       knockbackTimer -= dt;
       velocity.x *= 0.9;
     } else if (canMove) {
-      // Horizontal movement
-      if (joystick.direction != JoystickDirection.idle) {
+      // Horizontal movement - joystick veya test input
+      Vector2 input = joystick.relativeDelta;
+      
+      // TEST: Klavye girişi varsa onu kullan
+      if (testInput.length > 0) {
+        input = testInput;
+      }
+      
+      if (input.x.abs() > 0.1 || joystick.direction != JoystickDirection.idle) {
         double currentSpeed = isShielding ? speed * 0.3 : speed;
-        velocity.x = joystick.relativeDelta.x * currentSpeed;
+        velocity.x = input.x * currentSpeed;
 
         if (velocity.x > 0) facingRight = true;
         if (velocity.x < 0) facingRight = false;
@@ -173,8 +184,8 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
         velocity.x = 0;
       }
 
-      // Jump
-      if (joystick.relativeDelta.y < -0.5 && isGrounded) {
+      // Jump - joystick veya test input
+      if ((joystick.relativeDelta.y < -0.5 || testInput.y < -0.5) && isGrounded) {
         velocity.y = -jumpForce;
         isGrounded = false;
       }
@@ -188,8 +199,35 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     // Apply velocity
     position += velocity * dt;
 
-    // Ground collision
+    // Ground, Ramp & Platform collision
     double floorY = 800;
+    
+    // Rampa kontrolü
+    final ramps = gameRef.world.children.whereType<Ramp>();
+    for (final ramp in ramps) {
+      final rampY = ramp.getYAtX(position.x);
+      if (rampY != double.infinity && position.y + size.y / 2 >= rampY) {
+        if (rampY < floorY) floorY = rampY;
+      }
+    }
+    
+    // Platform kontrolü - SADECE düşerken (velocity.y >= 0) ve üstten yaklaşırken
+    final platforms = gameRef.world.children.whereType<Platform>();
+    for (final platform in platforms) {
+      final platformY = platform.getYAtX(position.x);
+      if (platformY != double.infinity) {
+        // Oyuncunun ayak pozisyonu
+        final playerBottom = position.y + size.y / 2;
+        final playerPrevBottom = playerBottom - velocity.y * dt;
+        
+        // Sadece düşerken (velocity.y >= 0) VE önceki frame'de platformun üstündeyse
+        // veya şu an platformun üzerinde ve az üstündeyse
+        if (velocity.y >= 0 && playerPrevBottom <= platformY + 20 && playerBottom >= platformY) {
+          if (platformY < floorY) floorY = platformY;
+        }
+      }
+    }
+    
     if (position.y + size.y / 2 >= floorY) {
       position.y = floorY - size.y / 2;
       velocity.y = 0;
@@ -198,8 +236,10 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
     // World bounds
     if (gameRef.levelManager.state == LevelState.transitioning) {
-      if (position.x < 950) position.x = 950;
-      if (position.x > 1050) position.x = 1050;
+      // Asansör transition - oyuncuyu asansör bölgesinde tut (sağ tarafta)
+      final elevatorX = 2000 - 80; // Asansör pozisyonu
+      if (position.x < elevatorX - 100) position.x = elevatorX - 100;
+      if (position.x > elevatorX + 50) position.x = elevatorX + 50;
     } else {
       if (position.x < size.x / 2) position.x = size.x / 2;
       if (position.x > 2000 - size.x / 2) position.x = 2000 - size.x / 2;
@@ -311,5 +351,19 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
     final weapon = Weapon(position: weaponPosition, size: weaponSize);
     parent?.add(weapon);
+  }
+  
+  /// Oyuncuyu yeniden canlandır - tüm state'leri sıfırla
+  void respawn() {
+    _isDead = false;
+    _isHurt = false;
+    _isAttacking = false;
+    currentHealth = maxHealth;
+    velocity = Vector2.zero();
+    canMove = true;
+    knockbackTimer = 0;
+    isShielding = false;
+    current = PlayerState.idle;
+    animationTicker?.reset();
   }
 }

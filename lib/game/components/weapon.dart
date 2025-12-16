@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
+import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
 
 class Weapon extends PositionComponent with CollisionCallbacks {
   Weapon({required Vector2 position, required Vector2 size})
@@ -34,6 +35,8 @@ class Weapon extends PositionComponent with CollisionCallbacks {
     if (other is Enemy) {
       other.takeDamage();
     } else if (other is FlyingEnemy) {
+      other.takeDamage();
+    } else if (other is FlowerEnemy) {
       other.takeDamage();
     }
   }

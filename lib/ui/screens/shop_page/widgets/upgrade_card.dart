@@ -4,12 +4,14 @@ import 'package:pomodoro_knight/core/models/upgrade_item.dart';
 class UpgradeCard extends StatelessWidget {
   final UpgradeItem upgrade;
   final int currentLevel;
+  final bool canAfford;
   final VoidCallback? onUpgrade;
 
   const UpgradeCard({
     super.key,
     required this.upgrade,
     required this.currentLevel,
+    required this.canAfford,
     this.onUpgrade,
   });
 
@@ -142,9 +144,13 @@ class UpgradeCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: isMaxLevel ? null : onUpgrade,
+              onPressed: (isMaxLevel || !canAfford) ? null : onUpgrade,
               style: ElevatedButton.styleFrom(
-                backgroundColor: isMaxLevel ? Colors.grey[800] : upgrade.color,
+                backgroundColor: isMaxLevel
+                    ? Colors.grey[800]
+                    : canAfford
+                    ? upgrade.color
+                    : Colors.grey[700],
                 disabledBackgroundColor: Colors.grey[800],
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -154,6 +160,15 @@ class UpgradeCard extends StatelessWidget {
               child: isMaxLevel
                   ? const Text(
                       'MAX LEVEL REACHED',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey,
+                      ),
+                    )
+                  : !canAfford
+                  ? const Text(
+                      'INSUFFICIENT GOLD',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

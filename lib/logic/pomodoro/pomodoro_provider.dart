@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pomodoro_knight/core/constants/economy_constants.dart';
+import 'package:pomodoro_knight/logic/economy/economy_provider.dart';
 
 enum PomodoroStatus { idle, running, paused }
+
 enum PomodoroMode { work, shortBreak, longBreak }
 
 class PomodoroState {
@@ -43,7 +46,8 @@ class PomodoroState {
     );
   }
 
-  double get progress => initialSeconds == 0 ? 0 : remainingSeconds / initialSeconds;
+  double get progress =>
+      initialSeconds == 0 ? 0 : remainingSeconds / initialSeconds;
 }
 
 class PomodoroNotifier extends Notifier<PomodoroState> {
@@ -54,10 +58,7 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     ref.onDispose(() {
       _timer?.cancel();
     });
-    return PomodoroState(
-      remainingSeconds: 25 * 60,
-      initialSeconds: 25 * 60,
-    );
+    return PomodoroState(remainingSeconds: 25 * 60, initialSeconds: 25 * 60);
   }
 
   void startTimer() {
@@ -67,6 +68,15 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state.remainingSeconds > 0) {
         state = state.copyWith(remainingSeconds: state.remainingSeconds - 1);
+
+        // Work modundaysa gold kazan
+        if (state.mode == PomodoroMode.work) {
+          // 10 gold/dakika = 0.167 gold/saniye
+          // Her 6 saniyede 1 gold ekleyeceğiz (basitleştirmek için)
+          if ((state.initialSeconds - state.remainingSeconds) % 6 == 0) {
+            ref.read(economyProvider.notifier).addGold(1);
+          }
+        }
       } else {
         _timer?.cancel();
         state = state.copyWith(status: PomodoroStatus.idle);
@@ -93,7 +103,8 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
   void setWorkDuration(int minutes) {
     final newDuration = minutes * 60;
     state = state.copyWith(workDuration: newDuration);
-    if (state.mode == PomodoroMode.work && state.status == PomodoroStatus.idle) {
+    if (state.mode == PomodoroMode.work &&
+        state.status == PomodoroStatus.idle) {
       state = state.copyWith(
         remainingSeconds: newDuration,
         initialSeconds: newDuration,
@@ -104,7 +115,8 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
   void setShortBreakDuration(int minutes) {
     final newDuration = minutes * 60;
     state = state.copyWith(shortBreakDuration: newDuration);
-    if (state.mode == PomodoroMode.shortBreak && state.status == PomodoroStatus.idle) {
+    if (state.mode == PomodoroMode.shortBreak &&
+        state.status == PomodoroStatus.idle) {
       state = state.copyWith(
         remainingSeconds: newDuration,
         initialSeconds: newDuration,
@@ -138,4 +150,6 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
   // We can use ref.onDispose to cancel the timer.
 }
 
-final pomodoroProvider = NotifierProvider<PomodoroNotifier, PomodoroState>(PomodoroNotifier.new);
+final pomodoroProvider = NotifierProvider<PomodoroNotifier, PomodoroState>(
+  PomodoroNotifier.new,
+);

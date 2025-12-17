@@ -94,7 +94,7 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
   }
 
   // Rastgele oluşturulan platformların pozisyonları (çiçekler için)
-  List<Vector2> _platformPositions = [];
+  final List<Vector2> _platformPositions = [];
 
   void _spawnStructures() {
     // Önce eski yapıları temizle

@@ -2,42 +2,66 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/core/data/mock_upgrades.dart';
 import 'package:pomodoro_knight/ui/screens/shop_page/widgets/upgrade_card.dart';
+import 'package:pomodoro_knight/logic/upgrades/upgrades_provider.dart';
+import 'package:pomodoro_knight/logic/economy/economy_provider.dart';
 
-class UpgradesTab extends ConsumerStatefulWidget {
+class UpgradesTab extends ConsumerWidget {
   const UpgradesTab({super.key});
 
-  @override
-  ConsumerState<UpgradesTab> createState() => _UpgradesTabState();
-}
+  void _handleUpgrade(
+    BuildContext context,
+    WidgetRef ref,
+    String upgradeId,
+    int price,
+    int maxLevel,
+    int currentLevel,
+  ) {
+    // Max level kontrolü
+    if (currentLevel >= maxLevel) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Already at max level!'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
 
-class _UpgradesTabState extends ConsumerState<UpgradesTab> {
-  // Geçici olarak level'ları tutuyoruz (sonra provider'a taşınacak)
-  final Map<String, int> _upgradeLevels = {
-    'coin_boost': 2,
-    'damage_boost': 0,
-    'defense_boost': 1,
-    'health_boost': 0,
-    'speed_boost': 0,
-    'crit_chance': 0,
-  };
+    // Gold kontrolü
+    final canAfford = ref.read(economyProvider).gold >= price;
+    if (!canAfford) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ Insufficient gold!'),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
 
-  void _handleUpgrade(String upgradeId, int price) {
-    // TODO: Coin kontrolü yapılacak (shop provider'dan)
-    setState(() {
-      _upgradeLevels[upgradeId] = (_upgradeLevels[upgradeId] ?? 0) + 1;
-    });
+    // Gold harca
+    final success = ref.read(economyProvider.notifier).spendGold(price);
+    if (success) {
+      // Upgrade yap
+      ref.read(upgradesProvider.notifier).upgradeItem(upgradeId);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Upgrade successful! -$price coins'),
-        backgroundColor: Colors.green,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✅ Upgrade successful! -$price gold'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final upgradesState = ref.watch(upgradesProvider);
+    final gold = ref.watch(economyProvider).gold;
+
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
@@ -72,14 +96,20 @@ class _UpgradesTabState extends ConsumerState<UpgradesTab> {
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate((context, index) {
               final upgrade = mockUpgrades[index];
-              final currentLevel = _upgradeLevels[upgrade.id] ?? 0;
+              final currentLevel = upgradesState.levels[upgrade.id] ?? 0;
+              final canAfford = gold >= upgrade.getPriceForLevel(currentLevel);
 
               return UpgradeCard(
                 upgrade: upgrade,
                 currentLevel: currentLevel,
+                canAfford: canAfford,
                 onUpgrade: () => _handleUpgrade(
+                  context,
+                  ref,
                   upgrade.id,
                   upgrade.getPriceForLevel(currentLevel),
+                  upgrade.maxLevel,
+                  currentLevel,
                 ),
               );
             }, childCount: mockUpgrades.length),

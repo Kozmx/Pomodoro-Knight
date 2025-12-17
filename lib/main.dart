@@ -5,6 +5,7 @@ import 'package:pomodoro_knight/ui/screens/home_screen.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   await Hive.openBox('game_data');
   runApp(const ProviderScope(child: MainApp()));

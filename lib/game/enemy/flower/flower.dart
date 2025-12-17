@@ -215,13 +215,4 @@ class FlowerEnemy extends PositionComponent
     }
   }
 
-  @override
-  void onCollisionStart(
-    Set<Vector2> intersectionPoints,
-    PositionComponent other,
-  ) {
-    super.onCollisionStart(intersectionPoints, other);
-    // Çiçek sabit durduğu için collision damage yok
-    // Sadece weapon ile vurulunca hasar alır
-  }
 }

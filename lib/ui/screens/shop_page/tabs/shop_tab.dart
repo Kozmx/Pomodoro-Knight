@@ -38,18 +38,7 @@ class ShopTab extends ConsumerWidget {
               childAspectRatio: 0.85,
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
-              return ItemCard(
-                item: mockWeapons[index],
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    isScrollControlled: true,
-                    builder: (context) =>
-                        ItemDetailSheet(item: mockWeapons[index]),
-                  );
-                },
-              );
+              return ItemCard(item: mockWeapons[index]);
             }, childCount: mockWeapons.length),
           ),
         ),
@@ -80,18 +69,7 @@ class ShopTab extends ConsumerWidget {
               childAspectRatio: 0.85,
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
-              return ItemCard(
-                item: mockArmors[index],
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    isScrollControlled: true,
-                    builder: (context) =>
-                        ItemDetailSheet(item: mockArmors[index]),
-                  );
-                },
-              );
+              return ItemCard(item: mockArmors[index]);
             }, childCount: mockArmors.length),
           ),
         ),

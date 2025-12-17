@@ -1,5 +1,4 @@
 import 'package:flame/components.dart';
-import 'package:flame/extensions.dart';
 
 class GameBackground extends SpriteComponent with HasGameRef {
   // Dünya boyutları - tüm oyun bu koordinatları kullanacak

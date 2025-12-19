@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/logic/navigation/navigation_provider.dart';
 import 'package:pomodoro_knight/logic/economy/economy_provider.dart';
+import 'package:pomodoro_knight/logic/upgrades/upgrades_provider.dart';
 import 'package:pomodoro_knight/ui/screens/pomodoro_screen.dart';
 import 'package:pomodoro_knight/ui/screens/game_screen.dart';
 import 'package:pomodoro_knight/ui/screens/shop_page/shop_screen.dart';
@@ -101,6 +102,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SnackBar(
                       content: Text('🔄 Gold reset to 0'),
                       backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.refresh, color: Colors.purple),
+                title: const Text(
+                  'Reset All Upgrades',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  ref.read(upgradesProvider.notifier).resetAllUpgrades();
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('🔄 All upgrades reset to 0'),
+                      backgroundColor: Colors.purple,
                       duration: Duration(seconds: 2),
                     ),
                   );

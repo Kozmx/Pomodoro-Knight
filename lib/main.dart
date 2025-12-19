@@ -22,7 +22,7 @@ class MainApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF1A1A1A),
-        fontFamily: 'monospace',
+        fontFamily: 'Minecraftia',
         useMaterial3: true,
       ),
       home: const HomeScreen(),

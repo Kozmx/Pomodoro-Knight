@@ -8,6 +8,7 @@ import 'package:pomodoro_knight/game/components/weapon.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 import 'package:pomodoro_knight/game/components/level_manager.dart';
 import 'package:pomodoro_knight/game/components/elevator.dart';
+import 'package:pomodoro_knight/game/services/player_stats_service.dart';
 
 enum PlayerState {
   idle,
@@ -36,10 +37,13 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
   // TEST: Klavye girişi için
   Vector2 testInput = Vector2.zero();
+  
+  // Character Selection
+  int currentCharacter = 1; // 1 or 2
 
   // Health & Shield
-  double maxHealth = 100;
-  double currentHealth = 100;
+  double get maxHealth => 100 + PlayerStatsService().maxHealthBonus;
+  late double currentHealth;
   bool isShielding = false;
 
   // Animation Flags
@@ -60,62 +64,115 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     // New 96x96 should have 36x72 hitbox at 30,24
     add(RectangleHitbox(position: Vector2(30, 24), size: Vector2(36, 72)));
 
-    final images = Images(prefix: 'assets/');
-
-    // Load Images
-    final idleImg = await images.load('player/Idle.png');
-    final walkImg = await images.load('player/Walk.png');
-    final jumpImg = await images.load('player/Jump.png');
-    final attack1Img = await images.load('player/Attack1.png');
-    final attack2Img = await images.load('player/Attack2.png');
-    final walkAttack1Img = await images.load('player/WalkAttack1.png');
-    final walkAttack2Img = await images.load('player/WalkAttack2.png');
-    final hurtImg = await images.load('player/Hurt.png');
-    final deathImg = await images.load('player/Death.png');
-
-    print("Player: Images loaded. Idle: ${idleImg.width}x${idleImg.height}");
-
-    // Helper to create animation
-    SpriteAnimation createAnim(
-      Image image, {
-      double stepTime = 0.1,
-      bool loop = true,
-    }) {
-      final frameWidth = image.height.toDouble(); // Assume square frames
-      final frameCount = (image.width / frameWidth).round();
-      final sheet = SpriteSheet(
-        image: image,
-        srcSize: Vector2(frameWidth, frameWidth),
-      );
-      return sheet.createAnimation(
-        row: 0,
-        stepTime: stepTime,
-        to: frameCount,
-        loop: loop,
-      );
-    }
-
-    animations = {
-      PlayerState.idle: createAnim(idleImg),
-      PlayerState.walk: createAnim(walkImg),
-      PlayerState.jump: createAnim(jumpImg),
-      PlayerState.attack1: createAnim(attack1Img, stepTime: 0.08, loop: false),
-      PlayerState.attack2: createAnim(attack2Img, stepTime: 0.08, loop: false),
-      PlayerState.walkAttack1: createAnim(
-        walkAttack1Img,
-        stepTime: 0.08,
-        loop: false,
-      ),
-      PlayerState.walkAttack2: createAnim(
-        walkAttack2Img,
-        stepTime: 0.08,
-        loop: false,
-      ),
-      PlayerState.hurt: createAnim(hurtImg, loop: false),
-      PlayerState.death: createAnim(deathImg, loop: false),
-    };
+    await _loadCharacterAnimations();
 
     current = PlayerState.idle;
+    
+    // İlk health'i upgrade'lere göre ayarla
+    currentHealth = maxHealth;
+    
+    // Health upgrade değişikliklerini dinle
+    PlayerStatsService().onMaxHealthChanged = (oldMax, newMax) {
+      // Eğer oyuncu ölmemişse ve mevcut can oranını koru
+      if (!_isDead) {
+        final oldTotal = 100 + oldMax;
+        final newTotal = 100 + newMax;
+        final healthRatio = currentHealth / oldTotal;
+        currentHealth = (newTotal * healthRatio).clamp(1.0, newTotal);
+      }
+    };
+  }
+  
+  Future<void> _loadCharacterAnimations() async {
+    final images = Images(prefix: 'assets/');
+    
+    if (currentCharacter == 2) {
+      // Player 2: Sprite sheet'ten satır bazlı yükle
+      // 1. satır: idle, 2. satır: walk, 3. satır: run, 4. satır: attack, 5. satır: death, 6. satır: jump
+      final sheet2Img = await images.load('player2/player2_sheet.png');
+      print("Player 2 Sheet: ${sheet2Img.width}x${sheet2Img.height}");
+      
+      // Sheet: 1024x919, 6 sütun x 6 satır
+      // Frame boyutu: yaklaşık 170x153 veya 171x153
+      final sheet = SpriteSheet(
+        image: sheet2Img,
+        srcSize: Vector2(170.67, 153.17), // 1024/6 x 919/6
+      );
+      
+      animations = {
+        PlayerState.idle: sheet.createAnimation(row: 0, stepTime: 0.15, to: 6),
+        PlayerState.walk: sheet.createAnimation(row: 1, stepTime: 0.1, to: 6),
+        PlayerState.jump: sheet.createAnimation(row: 5, stepTime: 0.1, to: 6),
+        PlayerState.attack1: sheet.createAnimation(row: 3, stepTime: 0.08, to: 4, loop: false),
+        PlayerState.attack2: sheet.createAnimation(row: 3, stepTime: 0.08, to: 4, loop: false),
+        PlayerState.walkAttack1: sheet.createAnimation(row: 3, stepTime: 0.08, to: 4, loop: false),
+        PlayerState.walkAttack2: sheet.createAnimation(row: 3, stepTime: 0.08, to: 4, loop: false),
+        PlayerState.hurt: sheet.createAnimation(row: 4, stepTime: 0.1, to: 3, loop: false),
+        PlayerState.death: sheet.createAnimation(row: 4, stepTime: 0.15, to: 6, loop: false),
+      };
+    } else {
+      // Player 1: Ayrı dosyalardan yükle
+      final idleImg = await images.load('player/Idle.png');
+      final walkImg = await images.load('player/Walk.png');
+      final jumpImg = await images.load('player/Jump.png');
+      final attack1Img = await images.load('player/Attack1.png');
+      final attack2Img = await images.load('player/Attack2.png');
+      final walkAttack1Img = await images.load('player/WalkAttack1.png');
+      final walkAttack2Img = await images.load('player/WalkAttack2.png');
+      final hurtImg = await images.load('player/Hurt.png');
+      final deathImg = await images.load('player/Death.png');
+
+      print("Player: Images loaded. Idle: ${idleImg.width}x${idleImg.height}");
+
+      // Helper to create animation
+      SpriteAnimation createAnim(
+        Image image, {
+        double stepTime = 0.1,
+        bool loop = true,
+      }) {
+        final frameWidth = image.height.toDouble(); // Assume square frames
+        final frameCount = (image.width / frameWidth).round();
+        final sheet = SpriteSheet(
+          image: image,
+          srcSize: Vector2(frameWidth, frameWidth),
+        );
+        return sheet.createAnimation(
+          row: 0,
+          stepTime: stepTime,
+          to: frameCount,
+          loop: loop,
+        );
+      }
+
+      animations = {
+        PlayerState.idle: createAnim(idleImg),
+        PlayerState.walk: createAnim(walkImg),
+        PlayerState.jump: createAnim(jumpImg),
+        PlayerState.attack1: createAnim(attack1Img, stepTime: 0.08, loop: false),
+        PlayerState.attack2: createAnim(attack2Img, stepTime: 0.08, loop: false),
+        PlayerState.walkAttack1: createAnim(
+          walkAttack1Img,
+          stepTime: 0.08,
+          loop: false,
+        ),
+        PlayerState.walkAttack2: createAnim(
+          walkAttack2Img,
+          stepTime: 0.08,
+          loop: false,
+        ),
+        PlayerState.hurt: createAnim(hurtImg, loop: false),
+        PlayerState.death: createAnim(deathImg, loop: false),
+      };
+    }
+  }
+  
+  Future<void> switchCharacter(int characterNumber) async {
+    if (characterNumber == currentCharacter) return;
+    
+    currentCharacter = characterNumber;
+    final previousState = current;
+    await _loadCharacterAnimations();
+    current = previousState; // Restore state after reload
   }
 
   @override
@@ -139,7 +196,10 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
   @override
   void update(double dt) {
-    super.update(dt);
+    // Saldırı hızı upgrade'ine göre animasyon hızını artır
+    final speedMultiplier = PlayerStatsService().attackSpeedMultiplier;
+    final adjustedDt = _isAttacking ? dt * speedMultiplier : dt;
+    super.update(adjustedDt);
 
     if (_isDead) {
       if (animationTicker?.done() == true) {
@@ -330,7 +390,6 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     // Choose attack animation based on movement
     if (velocity.x.abs() > 0.1) {
       // Moving attack
-      // Randomly choose between WalkAttack1 and WalkAttack2
       current = (DateTime.now().millisecond % 2 == 0)
           ? PlayerState.walkAttack1
           : PlayerState.walkAttack2;
@@ -343,13 +402,18 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
     animationTicker?.reset();
 
-    // Spawn weapon logic (keep existing)
+    // Spawn weapon logic
     final weaponSize = Vector2(40, 40);
     final weaponPosition =
         position.clone() +
         Vector2(facingRight ? size.x / 2 : -size.x / 2 - weaponSize.x, -15);
 
-    final weapon = Weapon(position: weaponPosition, size: weaponSize);
+    // Hasar çarpanını upgrade'den al
+    final weapon = Weapon(
+      position: weaponPosition,
+      size: weaponSize,
+      damageMultiplier: PlayerStatsService().damageMultiplier,
+    );
     parent?.add(weapon);
   }
   

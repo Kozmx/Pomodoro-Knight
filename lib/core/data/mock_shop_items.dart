@@ -3,26 +3,7 @@ import '../models/shop_item.dart';
 
 // SILAHLAR
 final List<WeaponItem> mockWeapons = [
-  WeaponItem(
-    id: 'weapon_1',
-    name: 'Iron Sword',
-    description: 'Basic sword for beginners',
-    price: 100,
-    icon: Icons.electric_bolt,
-    color: Colors.grey,
-    damage: 10,
-    attackSpeed: 1.0,
-  ),
-  WeaponItem(
-    id: 'weapon_2',
-    name: 'Steel Sword',
-    description: 'A stronger sword made of steel',
-    price: 250,
-    icon: Icons.flash_on,
-    color: Colors.blue,
-    damage: 20,
-    attackSpeed: 1.2,
-  ),
+  
   WeaponItem(
     id: 'weapon_3',
     name: 'Fire Blade',

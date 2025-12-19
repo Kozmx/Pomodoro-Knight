@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/core/data/mock_shop_items.dart';
 import 'package:pomodoro_knight/ui/screens/shop_page/widgets/item_card.dart';
-import 'package:pomodoro_knight/ui/screens/shop_page/widgets/item_detail_sheet.dart';
 
 class ShopTab extends ConsumerWidget {
   const ShopTab({super.key});

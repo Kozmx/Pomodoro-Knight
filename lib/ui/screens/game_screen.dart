@@ -2,7 +2,9 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
+import 'package:pomodoro_knight/game/services/player_stats_service.dart';
 import 'package:pomodoro_knight/logic/navigation/navigation_provider.dart';
+import 'package:pomodoro_knight/logic/upgrades/upgrades_provider.dart';
 
 import 'package:pomodoro_knight/game/components/start_menu.dart';
 
@@ -11,6 +13,17 @@ class GameScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Upgrade stat'larını dinle ve oyun servisine aktar
+    final upgradesState = ref.watch(upgradesProvider);
+    PlayerStatsService().updateStats(
+      attackSpeed: upgradesState.attackSpeedMultiplier,
+      damage: upgradesState.damageMultiplier,
+      maxHealth: upgradesState.maxHealthBonus,
+      defense: upgradesState.defenseMultiplier,
+      coin: upgradesState.coinMultiplier,
+      crit: upgradesState.criticalChance,
+    );
+
     return Scaffold(
       body: GameWidget<FocusGame>(
         game: FocusGame(),

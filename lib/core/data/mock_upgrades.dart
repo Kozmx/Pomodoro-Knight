@@ -21,15 +21,6 @@ final List<UpgradeItem> mockUpgrades = [
     basePrice: 300,
   ),
   UpgradeItem(
-    id: 'defense_boost',
-    name: 'Defense Boost',
-    description: 'Increase all armor defense',
-    icon: Icons.shield,
-    color: Colors.blue,
-    maxLevel: 10,
-    basePrice: 300,
-  ),
-  UpgradeItem(
     id: 'health_boost',
     name: 'Health Boost',
     description: 'Increase maximum health',
@@ -39,8 +30,8 @@ final List<UpgradeItem> mockUpgrades = [
     basePrice: 250,
   ),
   UpgradeItem(
-    id: 'speed_boost',
-    name: 'Speed Boost',
+    id: 'attack_speed_boost',
+    name: 'AttackSpeed Boost',
     description: 'Increase attack speed',
     icon: Icons.speed,
     color: Colors.cyan,

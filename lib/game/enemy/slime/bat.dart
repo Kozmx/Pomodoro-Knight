@@ -232,10 +232,10 @@ class FlyingEnemy extends SpriteAnimationGroupComponent<BatState>
     parent?.add(projectile);
   }
 
-  void takeDamage() {
+  void takeDamage(double damage) {
     if (_isDead) return;
 
-    currentHealth -= 10;
+    currentHealth -= damage;
     if (currentHealth <= 0) {
       _isDead = true;
       current = BatState.death;

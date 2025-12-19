@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pomodoro_knight/core/constants/economy_constants.dart';
 import 'package:pomodoro_knight/logic/economy/economy_provider.dart';
+import 'package:pomodoro_knight/logic/upgrades/upgrades_provider.dart';
 
 enum PomodoroStatus { idle, running, paused }
 
@@ -71,10 +71,14 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
 
         // Work modundaysa gold kazan
         if (state.mode == PomodoroMode.work) {
-          // 10 gold/dakika = 0.167 gold/saniye
-          // Her 6 saniyede 1 gold ekleyeceğiz (basitleştirmek için)
+          // Coin boost upgrade'ini al
+          final coinMultiplier = ref.read(upgradesProvider).coinMultiplier;
+          
+          // Base: 10 gold/dakika = 0.167 gold/saniye
+          // Her 6 saniyede 1 gold (base), upgrade ile çarpılır
           if ((state.initialSeconds - state.remainingSeconds) % 6 == 0) {
-            ref.read(economyProvider.notifier).addGold(1);
+            final goldToAdd = (1 * coinMultiplier).round();
+            ref.read(economyProvider.notifier).addGold(goldToAdd);
           }
         }
       } else {

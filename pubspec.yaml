@@ -1,5 +1,5 @@
 name: pomodoro_knight
-description: "A new Flutter project."
+description: "a cute knight that uses the pomodoro technique"
 publish_to: "none"
 version: 0.1.0
 
@@ -18,6 +18,7 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   intl: ^0.19.0
+  nes_ui: ^0.27.0
   shared_preferences: ^2.5.3
 
 dev_dependencies:
@@ -31,4 +32,13 @@ flutter:
     - assets/slime1/
     - assets/bat/
     - assets/player/
+    - assets/player2/
     - assets/background/
+  
+  fonts:
+    - family: Pixelmania
+      fonts:
+        - asset: assets/fonts/Pixelmania.ttf
+    - family: Minecraftia
+      fonts:
+        - asset: assets/fonts/Minecraftia-Regular.ttf

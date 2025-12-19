@@ -1,15 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
-class UpgradesState {
-  final Map<String, int> levels;
-
-  const UpgradesState({required this.levels});
-
-  UpgradesState copyWith({Map<String, int>? levels}) {
-    return UpgradesState(levels: levels ?? this.levels);
-  }
-}
+import 'package:pomodoro_knight/logic/upgrades/upgrades_state.dart';
 
 class UpgradesNotifier extends Notifier<UpgradesState> {
   late Box _box;
@@ -19,13 +10,16 @@ class UpgradesNotifier extends Notifier<UpgradesState> {
     _box = Hive.box('game_data');
 
     // Hive'dan upgrade level'ları yükle
-    final Map<String, dynamic> savedLevels =
-        _box.get('upgrade_levels', defaultValue: <String, dynamic>{})
-            as Map<String, dynamic>;
-
-    final Map<String, int> levels = savedLevels.map(
-      (key, value) => MapEntry(key, value as int),
-    );
+    final dynamic savedData = _box.get('upgrade_levels', defaultValue: {});
+    
+    final Map<String, int> levels = {};
+    if (savedData is Map) {
+      savedData.forEach((key, value) {
+        if (key is String && value is int) {
+          levels[key] = value;
+        }
+      });
+    }
 
     return UpgradesState(levels: levels);
   }
@@ -52,6 +46,12 @@ class UpgradesNotifier extends Notifier<UpgradesState> {
 
   // Test için sıfırla
   void resetUpgrades() {
+    state = const UpgradesState(levels: {});
+    _saveToHive();
+  }
+  
+  // Tüm upgrade'leri sıfırla
+  void resetAllUpgrades() {
     state = const UpgradesState(levels: {});
     _saveToHive();
   }

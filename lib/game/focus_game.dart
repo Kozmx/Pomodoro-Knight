@@ -201,6 +201,18 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
       return KeyEventResult.handled;
     }
     
+    // 1 tuşu ile Player 1
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.digit1) {
+      player.switchCharacter(1);
+      return KeyEventResult.handled;
+    }
+    
+    // 2 tuşu ile Player 2
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.digit2) {
+      player.switchCharacter(2);
+      return KeyEventResult.handled;
+    }
+    
     return KeyEventResult.handled;
   }
 

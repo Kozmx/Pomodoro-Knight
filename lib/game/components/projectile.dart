@@ -64,13 +64,13 @@ class Projectile extends PositionComponent with CollisionCallbacks {
       }
     } else if (isReflected) {
       if (other is Enemy) {
-        other.takeDamage();
+        other.takeDamage(15.0);
         removeFromParent();
       } else if (other is FlyingEnemy) {
-        other.takeDamage();
+        other.takeDamage(15.0);
         removeFromParent();
       } else if (other is FlowerEnemy) {
-        other.takeDamage();
+        other.takeDamage(15.0);
         removeFromParent();
       }
     }

@@ -65,8 +65,12 @@ class PomodoroScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Pomodoro Knight',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          'POMODORO KNIGHT',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Pixelmania',
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,

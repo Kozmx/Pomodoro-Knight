@@ -56,6 +56,7 @@ class _StartMenuState extends State<StartMenu> {
                 color: Colors.white,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
+                fontFamily: 'Pixelmania',
               ),
             ),
             const SizedBox(height: 20),

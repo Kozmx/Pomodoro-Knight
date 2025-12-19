@@ -194,10 +194,10 @@ class Enemy extends SpriteAnimationGroupComponent<SlimeState>
     }
   }
 
-  void takeDamage() {
+  void takeDamage(double damage) {
     if (_isDead) return;
 
-    currentHealth -= 10;
+    currentHealth -= damage;
     if (currentHealth <= 0) {
       _isDead = true;
       current = SlimeState.death;

@@ -15,7 +15,7 @@ class PomodoroState {
   final int workDuration;
   final int shortBreakDuration;
   final int longBreakDuration;
-
+  
   PomodoroState({
     required this.remainingSeconds,
     required this.initialSeconds,

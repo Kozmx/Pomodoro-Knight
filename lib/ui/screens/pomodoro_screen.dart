@@ -64,13 +64,27 @@ class PomodoroScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'POMODORO KNIGHT',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Pixelmania',
-            fontSize: 18,
-          ),
+        title: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'POMODORO',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Pixelmania',
+                fontSize: 18,
+              ),
+            ),
+            SizedBox(height: 6),
+            Text(
+              'KNIGHT',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Pixelmania',
+                fontSize: 14,
+              ),
+            ),
+          ],
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -155,63 +169,63 @@ class PomodoroScreen extends ConsumerWidget {
           ],
         ),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Mode Selector
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _ModeButton(
-                  label: 'Work',
-                  isSelected: pomodoroState.mode == PomodoroMode.work,
-                  onTap: () => notifier.setMode(PomodoroMode.work),
-                ),
-                const SizedBox(width: 10),
-                _ModeButton(
-                  label: 'Break',
-                  isSelected: pomodoroState.mode == PomodoroMode.shortBreak,
-                  onTap: () {
-                    if (pomodoroState.mode == PomodoroMode.work &&
-                        pomodoroState.remainingSeconds > 0 &&
-                        pomodoroState.remainingSeconds <
-                            pomodoroState.initialSeconds) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'You must finish your work session first!',
-                          ),
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
-                      return;
-                    }
-                    notifier.setMode(PomodoroMode.shortBreak);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 50),
-            // Circular Timer
-            Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(
-                  width: 300,
-                  height: 300,
-                  child: CircularProgressIndicator(
-                    value: pomodoroState.progress,
-                    strokeWidth: 20,
-                    backgroundColor: Colors.grey.withOpacity(0.2),
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      pomodoroState.mode == PomodoroMode.work
-                          ? Colors.deepPurpleAccent
-                          : Colors.greenAccent,
-                    ),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/background/pomodoro_background.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              // Mode Selector - Üstte
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _ModeButton(
+                    label: 'Work',
+                    isSelected: pomodoroState.mode == PomodoroMode.work,
+                    onTap: () => notifier.setMode(PomodoroMode.work),
                   ),
+                  const SizedBox(width: 10),
+                  _ModeButton(
+                    label: 'Break',
+                    isSelected: pomodoroState.mode == PomodoroMode.shortBreak,
+                    onTap: () {
+                      if (pomodoroState.mode == PomodoroMode.work &&
+                          pomodoroState.remainingSeconds > 0 &&
+                          pomodoroState.remainingSeconds <
+                              pomodoroState.initialSeconds) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'You must finish your work session first!',
+                            ),
+                            backgroundColor: Colors.redAccent,
+                          ),
+                        );
+                        return;
+                      }
+                      notifier.setMode(PomodoroMode.shortBreak);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              // Timer with Green Rectangle Border
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 40,
+                  vertical: 30,
                 ),
-                Column(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.greenAccent, width: 4),
+                  borderRadius: BorderRadius.zero,
+                  color: Colors.black.withOpacity(0.3),
+                ),
+                child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
@@ -222,6 +236,7 @@ class PomodoroScreen extends ConsumerWidget {
                         letterSpacing: 2,
                       ),
                     ),
+                    const SizedBox(height: 8),
                     Text(
                       pomodoroState.status == PomodoroStatus.running
                           ? 'FOCUS'
@@ -234,41 +249,113 @@ class PomodoroScreen extends ConsumerWidget {
                     ),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 60),
-            // Controls
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                FloatingActionButton.large(
-                  onPressed: () {
-                    if (pomodoroState.status == PomodoroStatus.running) {
-                      notifier.pauseTimer();
-                    } else {
-                      notifier.startTimer();
-                    }
-                  },
-                  backgroundColor: pomodoroState.mode == PomodoroMode.work
-                      ? Colors.deepPurpleAccent
-                      : Colors.greenAccent,
-                  child: Icon(
-                    pomodoroState.status == PomodoroStatus.running
-                        ? Icons.pause
-                        : Icons.play_arrow,
-                    size: 40,
-                    color: Colors.white,
-                  ),
+              ),
+
+              // Karakter GIF - Moda göre değişir
+              Expanded(
+                child: Center(
+                  child: pomodoroState.mode == PomodoroMode.shortBreak
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/background/test_char.gif',
+                              width: 150,
+                              height: 150,
+                              fit: BoxFit.contain,
+                            ),
+                            const SizedBox(width: 10),
+                            Image.asset(
+                              'assets/background/campfire.gif',
+                              width: 150,
+                              height: 150,
+                              fit: BoxFit.contain,
+                            ),
+                          ],
+                        )
+                      : Image.asset(
+                          'assets/background/test_char.gif',
+                          width: 200,
+                          height: 200,
+                          fit: BoxFit.contain,
+                        ),
                 ),
-                const SizedBox(width: 20),
-                FloatingActionButton(
-                  onPressed: notifier.resetTimer,
-                  backgroundColor: Colors.grey[800],
-                  child: const Icon(Icons.refresh, color: Colors.white),
+              ),
+
+              // Controls - Navigation bar üstünde
+              Padding(
+                padding: const EdgeInsets.only(bottom: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        if (pomodoroState.status == PomodoroStatus.running) {
+                          notifier.pauseTimer();
+                        } else {
+                          notifier.startTimer();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            pomodoroState.status == PomodoroStatus.running
+                            ? Colors.orange
+                            : Colors.greenAccent,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                      ),
+                      icon: Icon(
+                        pomodoroState.status == PomodoroStatus.running
+                            ? Icons.pause
+                            : Icons.play_arrow,
+                        size: 24,
+                      ),
+                      label: Text(
+                        pomodoroState.status == PomodoroStatus.running
+                            ? 'PAUSE'
+                            : pomodoroState.mode == PomodoroMode.work
+                            ? 'START WORK'
+                            : 'START BREAK',
+                        style: const TextStyle(
+                          fontFamily: 'Minecraftia',
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: notifier.resetTimer,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[700],
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                      ),
+                      icon: const Icon(Icons.refresh, size: 24),
+                      label: const Text(
+                        'RESET',
+                        style: TextStyle(
+                          fontFamily: 'Minecraftia',
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -296,7 +383,7 @@ class _ModeButton extends StatelessWidget {
           color: isSelected
               ? Colors.white.withOpacity(0.1)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.zero,
           border: Border.all(
             color: isSelected
                 ? Colors.white.withOpacity(0.5)

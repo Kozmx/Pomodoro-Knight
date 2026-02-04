@@ -5,6 +5,7 @@ import 'package:flame/cache.dart'; // For Images
 import 'package:flame/sprite.dart';
 
 import 'package:pomodoro_knight/game/components/player.dart';
+import 'package:pomodoro_knight/game/components/xp_effect.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 
 enum SlimeState {
@@ -168,7 +169,7 @@ class Enemy extends SpriteAnimationGroupComponent<SlimeState>
   }
 
   void _applySeparation(double dt) {
-    final separationRadius = 50.0;
+    final separationRadius = 100.0; // 50'den 100'e artırıldı
     Vector2 separation = Vector2.zero();
     int neighbors = 0;
 
@@ -189,7 +190,7 @@ class Enemy extends SpriteAnimationGroupComponent<SlimeState>
 
     if (neighbors > 0) {
       separation /= neighbors.toDouble();
-      separation.scale(100.0);
+      separation.scale(200.0); // 100'den 200'e artırıldı - daha güçlü itme
       position += separation * dt;
     }
   }
@@ -202,6 +203,13 @@ class Enemy extends SpriteAnimationGroupComponent<SlimeState>
       _isDead = true;
       current = SlimeState.death;
       gameRef.levelManager.onEnemyKilled();
+      
+      // XP efekti spawn et (artırılmış - her katta skill açılabilsin)
+      spawnXpEffect(
+        gameRef: gameRef,
+        position: position.clone(),
+        xpAmount: 7, // 3'ten 7'ye artırıldı
+      );
     } else {
       _isHurt = true;
       _isAttacking = false; // Hurt interrupts attack

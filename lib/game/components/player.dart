@@ -5,10 +5,12 @@ import 'package:flame/cache.dart';
 import 'package:flame/sprite.dart';
 import 'package:flutter/material.dart' hide Image;
 import 'package:pomodoro_knight/game/components/weapon.dart';
+import 'package:pomodoro_knight/game/components/game_effects.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 import 'package:pomodoro_knight/game/components/level_manager.dart';
 import 'package:pomodoro_knight/game/components/elevator.dart';
 import 'package:pomodoro_knight/game/services/player_stats_service.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 enum PlayerState {
   idle,
@@ -37,7 +39,7 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
   // TEST: Klavye girişi için
   Vector2 testInput = Vector2.zero();
-  
+
   // Character Selection
   int currentCharacter = 1; // 1 or 2
 
@@ -51,12 +53,32 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
   bool _isHurt = false;
   bool _isDead = false;
 
+  // Audio
+  final GameAudioService _audioService = GameAudioService();
+  bool _wasMoving = false;
+  
+  // Dash sistemi
+  bool _isDashing = false;
+  double _dashTimer = 0;
+  final double _dashDuration = 0.15;
+  final double _dashSpeed = 800;
+  Vector2 _dashDirection = Vector2.zero();
+  
+  // Skill Buff sistemi
+  double _skillBuffTimer = 0;
+  double _attackSpeedBonus = 0;
+  double _damageBonus = 0;
+  double _healthRegen = 0;
+
   Player({required this.joystick})
     : super(size: Vector2(96, 96)); // Adjusted size
 
   @override
   Future<void> onLoad() async {
     print("Player: onLoad started");
+
+    // Audio servisini başlat
+    await _audioService.initialize();
     anchor = Anchor.center;
 
     // Hitbox - Adjusted for 96x96 sprite (scaled 1.5x from 64x64)
@@ -67,10 +89,10 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     await _loadCharacterAnimations();
 
     current = PlayerState.idle;
-    
+
     // İlk health'i upgrade'lere göre ayarla
     currentHealth = maxHealth;
-    
+
     // Health upgrade değişikliklerini dinle
     PlayerStatsService().onMaxHealthChanged = (oldMax, newMax) {
       // Eğer oyuncu ölmemişse ve mevcut can oranını koru
@@ -82,33 +104,63 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
       }
     };
   }
-  
+
   Future<void> _loadCharacterAnimations() async {
     final images = Images(prefix: 'assets/');
-    
+
     if (currentCharacter == 2) {
       // Player 2: Sprite sheet'ten satır bazlı yükle
       // 1. satır: idle, 2. satır: walk, 3. satır: run, 4. satır: attack, 5. satır: death, 6. satır: jump
       final sheet2Img = await images.load('player2/player2_sheet.png');
       print("Player 2 Sheet: ${sheet2Img.width}x${sheet2Img.height}");
-      
+
       // Sheet: 1024x919, 6 sütun x 6 satır
       // Frame boyutu: yaklaşık 170x153 veya 171x153
       final sheet = SpriteSheet(
         image: sheet2Img,
         srcSize: Vector2(170.67, 153.17), // 1024/6 x 919/6
       );
-      
+
       animations = {
         PlayerState.idle: sheet.createAnimation(row: 0, stepTime: 0.15, to: 6),
         PlayerState.walk: sheet.createAnimation(row: 1, stepTime: 0.1, to: 6),
         PlayerState.jump: sheet.createAnimation(row: 5, stepTime: 0.1, to: 6),
-        PlayerState.attack1: sheet.createAnimation(row: 3, stepTime: 0.08, to: 4, loop: false),
-        PlayerState.attack2: sheet.createAnimation(row: 3, stepTime: 0.08, to: 4, loop: false),
-        PlayerState.walkAttack1: sheet.createAnimation(row: 3, stepTime: 0.08, to: 4, loop: false),
-        PlayerState.walkAttack2: sheet.createAnimation(row: 3, stepTime: 0.08, to: 4, loop: false),
-        PlayerState.hurt: sheet.createAnimation(row: 4, stepTime: 0.1, to: 3, loop: false),
-        PlayerState.death: sheet.createAnimation(row: 4, stepTime: 0.15, to: 6, loop: false),
+        PlayerState.attack1: sheet.createAnimation(
+          row: 3,
+          stepTime: 0.08,
+          to: 4,
+          loop: false,
+        ),
+        PlayerState.attack2: sheet.createAnimation(
+          row: 3,
+          stepTime: 0.08,
+          to: 4,
+          loop: false,
+        ),
+        PlayerState.walkAttack1: sheet.createAnimation(
+          row: 3,
+          stepTime: 0.08,
+          to: 4,
+          loop: false,
+        ),
+        PlayerState.walkAttack2: sheet.createAnimation(
+          row: 3,
+          stepTime: 0.08,
+          to: 4,
+          loop: false,
+        ),
+        PlayerState.hurt: sheet.createAnimation(
+          row: 4,
+          stepTime: 0.1,
+          to: 3,
+          loop: false,
+        ),
+        PlayerState.death: sheet.createAnimation(
+          row: 4,
+          stepTime: 0.15,
+          to: 6,
+          loop: false,
+        ),
       };
     } else {
       // Player 1: Ayrı dosyalardan yükle
@@ -148,8 +200,16 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
         PlayerState.idle: createAnim(idleImg),
         PlayerState.walk: createAnim(walkImg),
         PlayerState.jump: createAnim(jumpImg),
-        PlayerState.attack1: createAnim(attack1Img, stepTime: 0.08, loop: false),
-        PlayerState.attack2: createAnim(attack2Img, stepTime: 0.08, loop: false),
+        PlayerState.attack1: createAnim(
+          attack1Img,
+          stepTime: 0.08,
+          loop: false,
+        ),
+        PlayerState.attack2: createAnim(
+          attack2Img,
+          stepTime: 0.08,
+          loop: false,
+        ),
         PlayerState.walkAttack1: createAnim(
           walkAttack1Img,
           stepTime: 0.08,
@@ -165,10 +225,10 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
       };
     }
   }
-  
+
   Future<void> switchCharacter(int characterNumber) async {
     if (characterNumber == currentCharacter) return;
-    
+
     currentCharacter = characterNumber;
     final previousState = current;
     await _loadCharacterAnimations();
@@ -190,14 +250,46 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
           ..strokeWidth = 3,
       );
     }
+    
+    // Buff aktifken parlama efekti
+    if (hasActiveBuff) {
+      canvas.drawCircle(
+        Offset(size.x / 2, size.y / 2),
+        45,
+        Paint()
+          ..color = Colors.orange.withOpacity(0.2)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+      );
+    }
+    
+    // Dash efekti
+    if (_isDashing) {
+      canvas.drawCircle(
+        Offset(size.x / 2, size.y / 2),
+        35,
+        Paint()
+          ..color = Colors.cyan.withOpacity(0.4)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+      );
+    }
   }
 
   bool canMove = true;
 
   @override
   void update(double dt) {
+    // Buff ve dash güncellemeleri
+    _updateBuffs(dt);
+    _updateDash(dt);
+    
+    // Dash sırasında normal fizik işleme
+    if (_isDashing) {
+      super.update(dt);
+      return;
+    }
+    
     // Saldırı hızı upgrade'ine göre animasyon hızını artır
-    final speedMultiplier = PlayerStatsService().attackSpeedMultiplier;
+    final speedMultiplier = currentAttackSpeedMultiplier;
     final adjustedDt = _isAttacking ? dt * speedMultiplier : dt;
     super.update(adjustedDt);
 
@@ -228,12 +320,12 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     } else if (canMove) {
       // Horizontal movement - joystick veya test input
       Vector2 input = joystick.relativeDelta;
-      
+
       // TEST: Klavye girişi varsa onu kullan
       if (testInput.length > 0) {
         input = testInput;
       }
-      
+
       if (input.x.abs() > 0.1 || joystick.direction != JoystickDirection.idle) {
         double currentSpeed = isShielding ? speed * 0.3 : speed;
         velocity.x = input.x * currentSpeed;
@@ -245,7 +337,8 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
       }
 
       // Jump - joystick veya test input
-      if ((joystick.relativeDelta.y < -0.5 || testInput.y < -0.5) && isGrounded) {
+      if ((joystick.relativeDelta.y < -0.5 || testInput.y < -0.5) &&
+          isGrounded) {
         velocity.y = -jumpForce;
         isGrounded = false;
       }
@@ -261,7 +354,7 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
     // Ground, Ramp & Platform collision
     double floorY = 800;
-    
+
     // Rampa kontrolü
     final ramps = gameRef.world.children.whereType<Ramp>();
     for (final ramp in ramps) {
@@ -270,7 +363,7 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
         if (rampY < floorY) floorY = rampY;
       }
     }
-    
+
     // Platform kontrolü - SADECE düşerken (velocity.y >= 0) ve üstten yaklaşırken
     final platforms = gameRef.world.children.whereType<Platform>();
     for (final platform in platforms) {
@@ -279,15 +372,17 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
         // Oyuncunun ayak pozisyonu
         final playerBottom = position.y + size.y / 2;
         final playerPrevBottom = playerBottom - velocity.y * dt;
-        
+
         // Sadece düşerken (velocity.y >= 0) VE önceki frame'de platformun üstündeyse
         // veya şu an platformun üzerinde ve az üstündeyse
-        if (velocity.y >= 0 && playerPrevBottom <= platformY + 20 && playerBottom >= platformY) {
+        if (velocity.y >= 0 &&
+            playerPrevBottom <= platformY + 20 &&
+            playerBottom >= platformY) {
           if (platformY < floorY) floorY = platformY;
         }
       }
     }
-    
+
     if (position.y + size.y / 2 >= floorY) {
       position.y = floorY - size.y / 2;
       velocity.y = 0;
@@ -303,6 +398,16 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     } else {
       if (position.x < size.x / 2) position.x = size.x / 2;
       if (position.x > 2000 - size.x / 2) position.x = 2000 - size.x / 2;
+    }
+
+    // Footstep sesleri - yerde ve hareket ediyorsa
+    final isMoving = velocity.x.abs() > 10 && isGrounded && !_isDead;
+    if (isMoving) {
+      _audioService.playFootstep(dt);
+      _wasMoving = true;
+    } else if (_wasMoving) {
+      _audioService.resetFootstepCooldown();
+      _wasMoving = false;
     }
 
     // Update Animation State
@@ -344,15 +449,15 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
   }
 
   void takeDamage(double amount, Vector2 sourcePosition) {
-    if (isShielding) return;
+    if (isShielding || _isDead) return; // Zaten ölüyse hasar alma
 
     currentHealth -= amount;
-    if (currentHealth <= 0) {
+    if (currentHealth <= 0 && !_isDead) { // Sadece ilk kez ölüyorsa
       currentHealth = 0;
       _isDead = true;
       current = PlayerState.death;
       animationTicker?.reset();
-    } else {
+    } else if (!_isDead) {
       _isHurt = true;
       _isAttacking = false;
       current = PlayerState.hurt;
@@ -387,6 +492,9 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
     _isAttacking = true;
 
+    // Kılıç swoosh sesi çal
+    _audioService.playSwordSwoosh();
+
     // Choose attack animation based on movement
     if (velocity.x.abs() > 0.1) {
       // Moving attack
@@ -408,15 +516,14 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
         position.clone() +
         Vector2(facingRight ? size.x / 2 : -size.x / 2 - weaponSize.x, -15);
 
-    // Hasar çarpanını upgrade'den al
+    // Weapon artık kendi stats'larını PlayerStatsService'ten alıyor
     final weapon = Weapon(
       position: weaponPosition,
       size: weaponSize,
-      damageMultiplier: PlayerStatsService().damageMultiplier,
     );
     parent?.add(weapon);
   }
-  
+
   /// Oyuncuyu yeniden canlandır - tüm state'leri sıfırla
   void respawn() {
     _isDead = false;
@@ -427,7 +534,97 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     canMove = true;
     knockbackTimer = 0;
     isShielding = false;
+    _isDashing = false;
+    _skillBuffTimer = 0;
+    _attackSpeedBonus = 0;
+    _damageBonus = 0;
+    _healthRegen = 0;
     current = PlayerState.idle;
     animationTicker?.reset();
   }
+  
+  /// Dash yeteneği
+  void performDash() {
+    if (_isDashing || _isDead || !canMove) return;
+    
+    _isDashing = true;
+    _dashTimer = _dashDuration;
+    
+    // Yürüdüğümüz yöne dash at
+    if (velocity.x.abs() > 10 || testInput.x.abs() > 0.1) {
+      _dashDirection = Vector2(facingRight ? 1 : -1, 0);
+    } else {
+      // Duruyorsak baktığımız yöne
+      _dashDirection = Vector2(facingRight ? 1 : -1, 0);
+    }
+  }
+  
+  /// Skill buff uygula
+  void applySkillBuff({
+    required double attackSpeedBonus,
+    required double damageBonus,
+    required double healthRegen,
+    required double duration,
+  }) {
+    _skillBuffTimer = duration;
+    _attackSpeedBonus = attackSpeedBonus;
+    _damageBonus = damageBonus;
+    _healthRegen = healthRegen;
+  }
+  
+  // Can yenilenme görseli için
+  double _healTextCooldown = 0;
+  double _accumulatedHeal = 0;
+  
+  /// Aktif buff'ları güncelle (update içinde çağrılacak)
+  void _updateBuffs(double dt) {
+    if (_skillBuffTimer > 0) {
+      _skillBuffTimer -= dt;
+      
+      // Can yenilenmesi
+      if (_healthRegen > 0 && currentHealth < maxHealth) {
+        final healAmount = _healthRegen * dt;
+        currentHealth = (currentHealth + healAmount).clamp(0, maxHealth);
+        
+        // Heal text cooldown - her 0.5 saniyede bir göster
+        _accumulatedHeal += healAmount;
+        _healTextCooldown -= dt;
+        
+        if (_healTextCooldown <= 0 && _accumulatedHeal >= 1) {
+          // +HP yazısı spawn et
+          parent?.add(HealText(
+            position: position.clone() + Vector2(0, -50),
+            amount: _accumulatedHeal,
+          ));
+          _accumulatedHeal = 0;
+          _healTextCooldown = 0.5;
+        }
+      }
+      
+      if (_skillBuffTimer <= 0) {
+        _attackSpeedBonus = 0;
+        _damageBonus = 0;
+        _healthRegen = 0;
+      }
+    }
+  }
+  
+  /// Dash güncelle
+  void _updateDash(double dt) {
+    if (_isDashing) {
+      _dashTimer -= dt;
+      
+      // Dash hareketi
+      position += _dashDirection * _dashSpeed * dt;
+      
+      if (_dashTimer <= 0) {
+        _isDashing = false;
+      }
+    }
+  }
+  
+  // Getter'lar - weapon ve diğer sistemler için
+  double get currentDamageMultiplier => PlayerStatsService().damageMultiplier * (1 + _damageBonus);
+  double get currentAttackSpeedMultiplier => PlayerStatsService().attackSpeedMultiplier * (1 + _attackSpeedBonus);
+  bool get hasActiveBuff => _skillBuffTimer > 0;
 }

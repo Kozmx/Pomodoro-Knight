@@ -2,32 +2,50 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui' as ui;
 
-/// Hasar miktarını gösteren uçan yazı
+/// Hasar miktarını gösteren uçan yazı - parlama efektli
 class DamageText extends PositionComponent {
   final double damage;
-  final Color color;
+  final bool isCritical;
   double _lifeTime = 0;
-  final double _duration = 1.0; // 1 saniye boyunca görünsün
+  final double _duration = 1.0;
+  
+  // Pop-in animasyon
+  double _scale = 0.0;
+  
+  // Rastgele yatay hareket
+  late double _horizontalDrift;
 
   DamageText({
     required Vector2 position,
     required this.damage,
-    this.color = Colors.white,
+    this.isCritical = false,
   }) : super(
           position: position,
           size: Vector2.zero(),
           anchor: Anchor.center,
-        );
+        ) {
+    // Rastgele sağa veya sola kayma (-20 ile +20 arası)
+    _horizontalDrift = (damage.hashCode % 40 - 20).toDouble();
+  }
 
   @override
   void update(double dt) {
     super.update(dt);
     _lifeTime += dt;
 
-    // Yukarı doğru hareket et
-    position.y -= 50 * dt;
+    // Pop-in animasyonu (ilk 0.1 saniye)
+    if (_lifeTime < 0.1) {
+      _scale = (_lifeTime / 0.1) * 1.4; // Overshoot
+    } else if (_lifeTime < 0.2) {
+      _scale = 1.4 - ((_lifeTime - 0.1) / 0.1) * 0.4; // Settle to 1.0
+    } else {
+      _scale = 1.0;
+    }
 
-    // Süre dolunca yok ol
+    // Yukarı + hafif yana hareket
+    position.y -= 60 * dt;
+    position.x += _horizontalDrift * dt * 0.5;
+
     if (_lifeTime >= _duration) {
       removeFromParent();
     }
@@ -37,21 +55,46 @@ class DamageText extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
 
-    // Opacity fade out efekti
-    final opacity = (1.0 - (_lifeTime / _duration)).clamp(0.0, 1.0);
+    // Fade out (son 0.3 saniye)
+    double opacity = 1.0;
+    if (_lifeTime > _duration - 0.3) {
+      opacity = ((_duration - _lifeTime) / 0.3).clamp(0.0, 1.0);
+    }
 
+    canvas.save();
+    canvas.scale(_scale, _scale);
+
+    // Renk seçimi
+    final Color mainColor = isCritical ? Colors.yellow : Colors.redAccent;
+    final Color glowColor = isCritical ? Colors.orange : Colors.red;
+    final double fontSize = isCritical ? 24.0 : 18.0;
+
+    // Glow efekti (arka plan)
+    final glowPaint = Paint()
+      ..color = glowColor.withOpacity(opacity * 0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+    
+    final text = isCritical ? 'CRIT! -${damage.toInt()}' : '-${damage.toInt()} HP';
+    
     final textPainter = TextPainter(
       text: TextSpan(
-        text: damage.toInt().toString(),
+        text: text,
         style: TextStyle(
-          color: color.withOpacity(opacity),
-          fontSize: 16,
+          fontFamily: 'Minecraftia',
+          color: mainColor.withOpacity(opacity),
+          fontSize: fontSize,
           fontWeight: FontWeight.bold,
           shadows: [
+            // Dış glow
             Shadow(
-              color: Colors.black.withOpacity(opacity),
+              color: glowColor.withOpacity(opacity * 0.8),
+              blurRadius: 8,
+            ),
+            // Alt gölge
+            Shadow(
+              color: Colors.black.withOpacity(opacity * 0.9),
               blurRadius: 2,
-              offset: const Offset(1, 1),
+              offset: const Offset(1, 2),
             ),
           ],
         ),
@@ -60,9 +103,19 @@ class DamageText extends PositionComponent {
     );
 
     textPainter.layout();
+    
+    // Glow background circle
+    canvas.drawCircle(
+      Offset.zero,
+      textPainter.width * 0.4,
+      glowPaint,
+    );
+    
     textPainter.paint(
       canvas,
       Offset(-textPainter.width / 2, -textPainter.height / 2),
     );
+
+    canvas.restore();
   }
 }

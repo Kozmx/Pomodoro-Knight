@@ -5,6 +5,8 @@ import 'package:pomodoro_knight/game/focus_game.dart';
 import 'package:pomodoro_knight/game/services/player_stats_service.dart';
 import 'package:pomodoro_knight/logic/navigation/navigation_provider.dart';
 import 'package:pomodoro_knight/logic/upgrades/upgrades_provider.dart';
+import 'package:pomodoro_knight/logic/inventory/inventory_provider.dart';
+import 'package:pomodoro_knight/core/data/mock_shop_items.dart';
 
 import 'package:pomodoro_knight/game/components/start_menu.dart';
 
@@ -23,6 +25,34 @@ class GameScreen extends ConsumerWidget {
       coin: upgradesState.coinMultiplier,
       crit: upgradesState.criticalChance,
     );
+    
+    // Equipped weapon'ı dinle ve oyun servisine aktar
+    final inventory = ref.watch(inventoryProvider);
+    final equippedWeaponId = inventory.equippedWeapon;
+    
+    // Equipped weapon'ın stats'larını bul
+    if (equippedWeaponId != null) {
+      final weapon = mockWeapons.firstWhere(
+        (w) => w.id == equippedWeaponId,
+        orElse: () => mockWeapons.first, // Default: Knight Sword
+      );
+      PlayerStatsService().updateEquippedWeapon(
+        weaponId: weapon.id,
+        baseDamage: weapon.damage,
+        attackSpeed: weapon.attackSpeed,
+        critBonus: weapon.critBonus,
+        specialEffect: weapon.specialEffect,
+      );
+    } else {
+      // Default starter weapon
+      PlayerStatsService().updateEquippedWeapon(
+        weaponId: 'weapon_starter',
+        baseDamage: 10,
+        attackSpeed: 1.0,
+        critBonus: 0.0,
+        specialEffect: 'None',
+      );
+    }
 
     return Scaffold(
       body: GameWidget<FocusGame>(

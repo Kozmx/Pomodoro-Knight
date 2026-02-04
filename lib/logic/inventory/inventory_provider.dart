@@ -11,12 +11,24 @@ class InventoryNotifier extends Notifier<InventoryState> {
   InventoryState build() {
     _box = Hive.box('game_data');
 
-    final List<String> weapons =
+    List<String> weapons =
         (_box.get('owned_weapons', defaultValue: []) as List).cast<String>();
     final List<String> armors =
         (_box.get('owned_armors', defaultValue: []) as List).cast<String>();
-    final String? equippedWeapon = _box.get('equipped_weapon') as String?;
+    String? equippedWeapon = _box.get('equipped_weapon') as String?;
     final String? equippedArmor = _box.get('equipped_armor') as String?;
+
+    // Starter weapon'ı otomatik ekle (ilk kez)
+    if (!weapons.contains('weapon_starter')) {
+      weapons = List<String>.from(weapons)..add('weapon_starter');
+      _box.put('owned_weapons', weapons);
+    }
+    
+    // Hiç equip edilmemişse starter'ı equip et
+    if (equippedWeapon == null) {
+      equippedWeapon = 'weapon_starter';
+      _box.put('equipped_weapon', equippedWeapon);
+    }
 
     return InventoryState(
       ownedWeapons: weapons,

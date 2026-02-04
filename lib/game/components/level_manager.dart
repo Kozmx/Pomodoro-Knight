@@ -3,6 +3,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:pomodoro_knight/game/components/background.dart';
 import 'package:pomodoro_knight/game/components/elevator.dart';
+import 'package:pomodoro_knight/game/components/game_effects.dart';
 import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
 import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
@@ -17,6 +18,9 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
   int enemiesKilled = 0;
   int totalEnemies = 0;
   LevelState state = LevelState.playing;
+  
+  // Asansör hazır bildirimi
+  ElevatorReadyIndicator? _elevatorIndicator;
 
   final Random _rnd = Random();
 
@@ -66,9 +70,10 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     gameRef.player.currentHealth = gameRef.player.maxHealth;
 
     // Calculate enemies for this level (simple progression)
-    int enemyCount = 2 + currentLevel;
-    int flyingEnemyCount = 1 + (currentLevel ~/ 2);
-    int flowerCount = currentLevel ~/ 2; // Her 2 levelde 1 çiçek
+    // Azaltılmış düşman sayıları - daha az iç içe girme için
+    int enemyCount = 1 + (currentLevel ~/ 2); // Önceki: 2 + currentLevel
+    int flyingEnemyCount = 1 + (currentLevel ~/ 3); // Önceki: 1 + currentLevel ~/ 2
+    int flowerCount = currentLevel ~/ 3; // Önceki: currentLevel ~/ 2
     totalEnemies = enemyCount + flyingEnemyCount + flowerCount;
 
     print(
@@ -136,113 +141,100 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     const double maxJumpHeight = (jumpForce * jumpForce) / (2 * gravity);
     const double safeJumpHeight = maxJumpHeight * 0.85; // ~106 piksel - platformlar arası güvenli mesafe
     
-    // Platform sayısı: 3-5 arası
-    final platformCount = 3 + _rnd.nextInt(3); // 3, 4 veya 5
+    // Platform sayısı: 2-3 arası (azaltıldı)
+    final platformCount = 2 + _rnd.nextInt(2); // 2 veya 3
     
     // Platform spawn alanı
-    final minX = 80.0;
-    final maxX = rampStartX - 150; // Rampa öncesi
+    final minX = 100.0;
+    final maxX = rampStartX - 200; // Rampa öncesi
     
     // Y pozisyonları - yerden (800) yukarı doğru
     final groundY = 800.0;
     
-    // Minimum platform arası X mesafesi (zıplayarak geçilebilir)
-    final minXDistance = 100.0;
-    final maxXDistance = 250.0; // Çok uzak olmasın
+    // Minimum platform arası mesafeler (artırıldı - iç içe girmesin)
+    final minXDistance = 180.0; // 100'den 180'e
+    final minYDistance = 80.0;  // Yeni - Y mesafesi de kontrol
     
-    // Platformları oluştur - merdiven mantığı ile
-    // İLK platform yerden zıplanabilir olmalı
-    // Sonraki platformlar bir öncekinden zıplanabilir olmalı
+    // Platformları oluştur
+    List<Rect> existingPlatforms = []; // Platform alanları (overlap kontrolü için)
     
-    List<Vector2> platformCenters = []; // Platform merkezleri (zıplama mesafesi kontrolü için)
-    
-    // İlk platform - yerden zıplanabilir (safeJumpHeight içinde)
-    double firstY = groundY - 70 - _rnd.nextDouble() * (safeJumpHeight - 80);
-    double firstX = minX + _rnd.nextDouble() * (maxX - minX - 200);
-    double firstWidth = 140 + _rnd.nextDouble() * 80;
+    // İlk platform - yerden zıplanabilir
+    double firstY = groundY - 80 - _rnd.nextDouble() * 40; // 650-720 arası
+    double firstX = minX + 50 + _rnd.nextDouble() * 200;
+    double firstWidth = 150 + _rnd.nextDouble() * 50;
     
     final firstPlatform = Platform(pos: Vector2(firstX, firstY), width: firstWidth);
     gameRef.world.add(firstPlatform);
-    platformCenters.add(Vector2(firstX + firstWidth / 2, firstY));
+    existingPlatforms.add(Rect.fromLTWH(firstX, firstY - 20, firstWidth, 40));
     _platformPositions.add(Vector2(firstX + firstWidth / 2, firstY));
-    print("LevelManager: Platform 1 at (${firstX.toInt()}, ${firstY.toInt()}) - yerden zıplanabilir");
+    print("LevelManager: Platform 1 at (${firstX.toInt()}, ${firstY.toInt()})");
     
-    // Sonraki platformlar - bir öncekinden zıplanabilir mesafede
+    // Sonraki platformlar
     for (int i = 1; i < platformCount; i++) {
-      Vector2 pos;
-      double width;
+      double x, y, width;
       int attempts = 0;
       bool validPosition = false;
       
       do {
-        // Önceki platformlardan birine zıplanabilir mesafede olmalı
-        final targetPlatform = platformCenters[_rnd.nextInt(platformCenters.length)];
-        
-        // X pozisyonu: önceki platformdan 100-250 piksel uzakta (sağ veya sol)
-        final xOffset = (minXDistance + _rnd.nextDouble() * (maxXDistance - minXDistance)) * 
-                        (_rnd.nextBool() ? 1 : -1);
-        double x = targetPlatform.x + xOffset;
-        
-        // Sınırları kontrol et
-        if (x < minX) x = minX + _rnd.nextDouble() * 100;
-        if (x > maxX) x = maxX - _rnd.nextDouble() * 100 - 150;
-        
-        // Y pozisyonu: önceki platformdan safeJumpHeight içinde (yukarı veya aşağı)
-        // Ama yerden de zıplanabilir veya başka platformdan zıplanabilir olmalı
-        final yOffset = (_rnd.nextDouble() * safeJumpHeight * 0.9) * 
-                        (_rnd.nextBool() ? 1 : -1);
-        double y = targetPlatform.y + yOffset;
+        // Rastgele pozisyon
+        x = minX + _rnd.nextDouble() * (maxX - minX - 150);
+        y = groundY - 80 - _rnd.nextDouble() * (safeJumpHeight + 50);
+        width = 140 + _rnd.nextDouble() * 60;
         
         // Y sınırları
-        if (y > groundY - 70) y = groundY - 70 - _rnd.nextDouble() * 30;
-        if (y < 450) y = 450 + _rnd.nextDouble() * 50;
+        if (y < 500) y = 500 + _rnd.nextDouble() * 50;
+        if (y > groundY - 70) y = groundY - 80;
         
-        pos = Vector2(x, y);
-        width = 120 + _rnd.nextDouble() * 80;
-        
-        // Geçerlilik kontrolü
+        // Overlap kontrolü - mevcut platformlarla çakışma
+        final newRect = Rect.fromLTWH(x - 30, y - 50, width + 60, 100);
         validPosition = true;
         
-        // 1. En az bir platformdan zıplanabilir olmalı
-        bool reachableFromAny = false;
-        for (final existingCenter in platformCenters) {
-          final xDist = (pos.x + width/2 - existingCenter.x).abs();
-          final yDist = (pos.y - existingCenter.y).abs();
-          
-          // Zıplanabilir mesafe: Y farkı safeJumpHeight içinde VE X farkı makul
-          if (yDist <= safeJumpHeight && xDist <= maxXDistance + width) {
-            reachableFromAny = true;
+        for (final existingRect in existingPlatforms) {
+          if (newRect.overlaps(existingRect)) {
+            validPosition = false;
             break;
           }
-        }
-        
-        // VEYA yerden zıplanabilir
-        if (pos.y >= groundY - safeJumpHeight) {
-          reachableFromAny = true;
-        }
-        
-        if (!reachableFromAny) {
-          validPosition = false;
-        }
-        
-        // 2. Diğer platformlarla çakışma kontrolü
-        for (final existingCenter in platformCenters) {
-          final dist = (pos + Vector2(width/2, 0)).distanceTo(existingCenter);
-          if (dist < 100) { // Çok yakın olmasın
+          
+          // Minimum X ve Y mesafesi kontrolü
+          final xDist = (x + width/2 - existingRect.center.dx).abs();
+          final yDist = (y - existingRect.center.dy).abs();
+          
+          if (xDist < minXDistance && yDist < minYDistance) {
             validPosition = false;
             break;
           }
         }
         
+        // Zıplanabilirlik kontrolü - en az bir platformdan veya yerden
+        if (validPosition) {
+          bool reachable = false;
+          
+          // Yerden zıplanabilir mi?
+          if (y >= groundY - safeJumpHeight - 20) {
+            reachable = true;
+          }
+          
+          // Başka platformdan zıplanabilir mi?
+          for (final existingRect in existingPlatforms) {
+            final yDiff = existingRect.center.dy - y;
+            if (yDiff.abs() <= safeJumpHeight && yDiff >= -30) {
+              reachable = true;
+              break;
+            }
+          }
+          
+          if (!reachable) validPosition = false;
+        }
+        
         attempts++;
-      } while (!validPosition && attempts < 30);
+      } while (!validPosition && attempts < 50);
       
       if (validPosition) {
-        final newPlatform = Platform(pos: pos, width: width);
+        final newPlatform = Platform(pos: Vector2(x, y), width: width);
         gameRef.world.add(newPlatform);
-        platformCenters.add(Vector2(pos.x + width / 2, pos.y));
-        _platformPositions.add(Vector2(pos.x + width / 2, pos.y));
-        print("LevelManager: Platform ${i+1} at (${pos.x.toInt()}, ${pos.y.toInt()})");
+        existingPlatforms.add(Rect.fromLTWH(x - 30, y - 50, width + 60, 100));
+        _platformPositions.add(Vector2(x + width / 2, y));
+        print("LevelManager: Platform ${i+1} at (${x.toInt()}, ${y.toInt()})");
       }
     }
   }
@@ -340,12 +332,22 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
         ..position = Vector2(elevatorX, platformY);
       gameRef.world.add(elevator);
       print("LevelManager: Elevator spawned!");
+      
+      // Asansör hazır bildirimi göster
+      _elevatorIndicator = ElevatorReadyIndicator(
+        position: Vector2(elevatorX, platformY - 80),
+      );
+      gameRef.world.add(_elevatorIndicator!);
     }
   }
 
   void startAscension() {
     if (state == LevelState.transitioning) return;
     state = LevelState.transitioning;
+
+    // Asansör bildirimini kaldır
+    _elevatorIndicator?.dismiss();
+    _elevatorIndicator = null;
 
     // Disable player movement
     gameRef.player.canMove = false;
@@ -374,6 +376,13 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
   void _nextLevel() {
     currentLevel++;
     _saveLevel();
+
+    // Kat geçiş animasyonu göster
+    final overlay = LevelTransitionOverlay(
+      level: currentLevel,
+      screenSize: gameRef.size,
+    );
+    gameRef.camera.viewport.add(overlay);
 
     // Start new level (bu fonksiyon içinde yapılar temizlenip yenileri ekleniyor + oyuncu platformda spawn)
     startLevel();

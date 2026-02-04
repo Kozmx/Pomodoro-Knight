@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'package:pomodoro_knight/game/components/player.dart';
 import 'package:pomodoro_knight/game/components/projectile.dart';
+import 'package:pomodoro_knight/game/components/xp_effect.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 
 /// Sabit duran, projektil fırlatan çiçek düşmanı
@@ -208,6 +209,13 @@ class FlowerEnemy extends PositionComponent
       
       // LevelManager'a bildir
       gameRef.levelManager.onEnemyKilled();
+      
+      // XP efekti spawn et (artırılmış)
+      spawnXpEffect(
+        gameRef: gameRef,
+        position: position.clone(),
+        xpAmount: 8, // 4'ten 8'e artırıldı
+      );
     } else {
       _isHurt = true;
       _isAttacking = false;

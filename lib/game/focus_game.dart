@@ -6,11 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // TEST: Klavye için
 import 'package:pomodoro_knight/game/components/player.dart';
 import 'package:pomodoro_knight/game/components/background.dart';
+import 'package:pomodoro_knight/game/components/ability_buttons.dart';
 import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
 import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
 import 'package:pomodoro_knight/game/components/health_bar.dart';
-import 'package:pomodoro_knight/game/components/level_indicator.dart';
 import 'package:pomodoro_knight/game/components/level_manager.dart';
 
 // ===================== TEST MODU =====================
@@ -23,11 +23,12 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
   late final JoystickComponent joystick;
   late final GameBackground background;
   late final LevelManager levelManager;
-
-  // Button Logic
-  bool _isAttackButtonPressed = false;
-  double _buttonHoldTimer = 0.0;
-  final double _shieldThreshold = 0.2; // Seconds to hold for shield
+  
+  // Ability butonları
+  late final SkillButton skillButton;
+  late final DashButton dashButton;
+  late final ShieldButton shieldButton;
+  late final AttackButton attackButton;
 
   // TEST: Klavye kontrolleri için
   final Set<LogicalKeyboardKey> _keysPressed = {};
@@ -56,35 +57,44 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
 
     camera.viewport.add(joystick);
 
-    // Attack Button with Hold Logic
-    final attackButton = HudButtonComponent(
-      button: CircleComponent(
-        radius: 30,
-        paint: Paint()..color = Colors.red.withOpacity(0.5),
-      ),
-      margin: const EdgeInsets.only(right: 30, bottom: 30),
-      onPressed: () {
-        _isAttackButtonPressed = true;
-        _buttonHoldTimer = 0;
-      },
-      onReleased: () {
-        _isAttackButtonPressed = false;
-        player.setShield(false);
-
-        // If held for less than threshold, it's an attack
-        if (_buttonHoldTimer < _shieldThreshold) {
-          player.attack();
-        }
-        _buttonHoldTimer = 0;
-      },
+    // ===== YENİ ABILITY BUTONLARI =====
+    // Ana saldırı butonu (sağ alt)
+    attackButton = AttackButton(
+      position: Vector2(0, 0), // Margin ile ayarlanacak
+      radius: 30,
     );
-    camera.viewport.add(attackButton);
+    
+    // Dash butonu (saldırının solunda)
+    dashButton = DashButton(
+      position: Vector2(0, 0),
+      radius: 22,
+    );
+    
+    // Kalkan butonu (saldırının üstünde)
+    shieldButton = ShieldButton(
+      position: Vector2(0, 0),
+      radius: 22,
+    );
+    
+    // Skill butonu (sol üst çaprazda - XP ile dolan)
+    skillButton = SkillButton(
+      position: Vector2(0, 0),
+      radius: 22,
+    );
+    
+    // Butonları viewport'a ekle (pozisyonlar onMount'ta ayarlanacak)
+    camera.viewport.add(_AbilityButtonContainer(
+      attackButton: attackButton,
+      dashButton: dashButton,
+      shieldButton: shieldButton,
+      skillButton: skillButton,
+    ));
 
     // Health Bar
     camera.viewport.add(HealthBar());
 
     // Level Indicator
-    camera.viewport.add(LevelIndicator());
+    // LevelIndicator kaldırıldı - kat bilgisi FLOOR COMPLETE'de gösterilecek
 
     // 2. Arka planı dünyaya ekle
     background = GameBackground();
@@ -107,28 +117,8 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
       Rectangle.fromLTRB(0, 0, GameBackground.worldWidth, GameBackground.worldHeight),
     );
 
-    // TEST: Tüm düşmanları öldür butonu
-    if (_testModeEnabled) {
-      final killAllButton = HudButtonComponent(
-        button: CircleComponent(
-          radius: 25,
-          paint: Paint()..color = Colors.purple.withOpacity(0.7),
-          children: [
-            TextComponent(
-              text: '💀',
-              position: Vector2(25, 25),
-              anchor: Anchor.center,
-              textRenderer: TextPaint(
-                style: const TextStyle(fontSize: 20),
-              ),
-            ),
-          ],
-        ),
-        margin: const EdgeInsets.only(right: 100, bottom: 30),
-        onPressed: _killAllEnemies,
-      );
-      camera.viewport.add(killAllButton);
-    }
+    // TEST: Debug kontrolleri sadece klavye ile (K tuşu ile öldür)
+    // Ekranda buton YOK - alan temiz
 
     // Show Start Menu initially
     overlays.add('StartMenu');
@@ -142,14 +132,6 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
   @override
   void update(double dt) {
     super.update(dt);
-
-    // Handle Button Hold Logic
-    if (_isAttackButtonPressed) {
-      _buttonHoldTimer += dt;
-      if (_buttonHoldTimer >= _shieldThreshold) {
-        player.setShield(true);
-      }
-    }
 
     // TEST: Klavye ile hareket (ok tuşları + space)
     if (_testModeEnabled) {
@@ -280,5 +262,75 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
 
     overlays.remove('GameOver');
     resumeEngine();
+  }
+  
+  /// Düşman öldüğünde XP ekle (skill butonu için)
+  void addXpToSkill(int amount) {
+    // Her XP 0.10 progress ekler (10 XP = full = ~2 düşman)
+    // Bu sayede her katta en az 1 skill kullanılabilir
+    skillButton.addXp(amount * 0.10);
+  }
+}
+
+/// Ability butonlarını düzenleyen container
+class _AbilityButtonContainer extends PositionComponent with HasGameRef<FocusGame> {
+  final AttackButton attackButton;
+  final DashButton dashButton;
+  final ShieldButton shieldButton;
+  final SkillButton skillButton;
+  
+  _AbilityButtonContainer({
+    required this.attackButton,
+    required this.dashButton,
+    required this.shieldButton,
+    required this.skillButton,
+  });
+  
+  @override
+  Future<void> onLoad() async {
+    // Viewport boyutlarını al
+    final viewportSize = gameRef.camera.viewport.size;
+    
+    // Buton boyutları
+    const double attackRadius = 30;
+    const double abilityRadius = 22;
+    const double margin = 30;
+    const double spacing = 12;
+    
+    // Ana saldırı butonu pozisyonu (sağ alt)
+    final attackPos = Vector2(
+      viewportSize.x - margin - attackRadius,
+      viewportSize.y - margin - attackRadius,
+    );
+    
+    // Dash butonu (saldırının solunda)
+    final dashPos = Vector2(
+      attackPos.x - attackRadius - spacing - abilityRadius,
+      attackPos.y + (attackRadius - abilityRadius),
+    );
+    
+    // Kalkan butonu (saldırının üstünde)
+    final shieldPos = Vector2(
+      attackPos.x,
+      attackPos.y - attackRadius - spacing - abilityRadius,
+    );
+    
+    // Skill butonu (sol üst çaprazda)
+    final skillPos = Vector2(
+      attackPos.x - attackRadius - spacing - abilityRadius,
+      attackPos.y - attackRadius - spacing - abilityRadius,
+    );
+    
+    // Pozisyonları ayarla
+    attackButton.position = attackPos;
+    dashButton.position = dashPos;
+    shieldButton.position = shieldPos;
+    skillButton.position = skillPos;
+    
+    // Butonları ekle
+    add(attackButton);
+    add(dashButton);
+    add(shieldButton);
+    add(skillButton);
   }
 }

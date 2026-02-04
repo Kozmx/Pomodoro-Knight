@@ -21,6 +21,8 @@ abstract class ShopItem {
 class WeaponItem extends ShopItem {
   final int damage;
   final double attackSpeed;
+  final double critBonus;
+  final String specialEffect;
 
   WeaponItem({
     required super.id,
@@ -31,6 +33,8 @@ class WeaponItem extends ShopItem {
     required super.color,
     required this.damage,
     required this.attackSpeed,
+    this.critBonus = 0.0,
+    this.specialEffect = 'None',
   });
 }
 

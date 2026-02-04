@@ -18,20 +18,26 @@ class ItemCard extends ConsumerWidget {
     final canAfford = ref.watch(
       economyProvider.select((state) => state.gold >= item.price),
     );
+    
+    // Equipped kontrolü
+    final isEquipped = (item is WeaponItem && inventory.equippedWeapon == item.id) ||
+        (item is ArmorItem && inventory.equippedArmor == item.id);
 
     return GestureDetector(
       onTap: isOwned
-          ? null
+          ? () => _equipItem(context, ref, item, isEquipped)
           : () => _showItemDetails(context, ref, item, canAfford),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF2A2A2A),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isOwned
-                ? Colors.green.withOpacity(0.5)
-                : item.color.withOpacity(0.5),
-            width: 2,
+            color: isEquipped
+                ? Colors.amber
+                : isOwned
+                    ? Colors.green.withOpacity(0.5)
+                    : item.color.withOpacity(0.5),
+            width: isEquipped ? 3 : 2,
           ),
         ),
         child: Padding(
@@ -39,7 +45,7 @@ class ItemCard extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Owned badge
+              // Owned/Equipped badge
               if (isOwned)
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -47,13 +53,13 @@ class ItemCard extends ConsumerWidget {
                     vertical: 1,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.green,
+                    color: isEquipped ? Colors.amber : Colors.green,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Text(
-                    'OWNED',
-                    style: TextStyle(
-                      color: Colors.white,
+                  child: Text(
+                    isEquipped ? 'EQUIPPED' : 'OWNED',
+                    style: const TextStyle(
+                      color: Colors.black,
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
                     ),
@@ -61,14 +67,40 @@ class ItemCard extends ConsumerWidget {
                 ),
 
               // Icon
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: item.color.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(item.icon, color: item.color, size: 26),
+              Stack(
+                children: [
+                  Container(
+                    width: 50,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      color: item.color.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(item.icon, color: item.color, size: 26),
+                  ),
+                  // Info button
+                  Positioned(
+                    right: -5,
+                    top: -5,
+                    child: GestureDetector(
+                      onTap: () => _showItemInfo(context, item),
+                      child: Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 1),
+                        ),
+                        child: const Icon(
+                          Icons.info_outline,
+                          color: Colors.white,
+                          size: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 2),
 
@@ -251,6 +283,24 @@ void _showItemDetails(
                       '${item.attackSpeed}x',
                       Colors.orange,
                     ),
+                    if (item.critBonus > 0) ...[
+                      const SizedBox(height: 8),
+                      _buildStatRow(
+                        Icons.auto_awesome,
+                        'Crit Bonus',
+                        '+${(item.critBonus * 100).toInt()}%',
+                        Colors.yellow,
+                      ),
+                    ],
+                    if (item.specialEffect != 'None') ...[
+                      const SizedBox(height: 8),
+                      _buildStatRow(
+                        Icons.star,
+                        'Special',
+                        item.specialEffect,
+                        Colors.purple,
+                      ),
+                    ],
                   ] else if (item is ArmorItem) ...[
                     _buildStatRow(
                       Icons.shield,
@@ -322,14 +372,134 @@ Widget _buildStatRow(IconData icon, String label, String value, Color color) {
       const SizedBox(width: 8),
       Text(label, style: const TextStyle(fontSize: 14, color: Colors.white70)),
       const Spacer(),
-      Text(
-        value,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: color,
+      Flexible(
+        child: Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+          textAlign: TextAlign.right,
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     ],
   );
+}
+
+void _showItemInfo(BuildContext context, ShopItem item) {
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: const Color(0xFF1E1E1E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: item.color.withOpacity(0.5), width: 2),
+      ),
+      title: Row(
+        children: [
+          Icon(item.icon, color: item.color, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              item.name,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            item.description,
+            style: TextStyle(color: Colors.grey[400], fontSize: 14),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'BOOSTS',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const Divider(color: Colors.white24),
+          if (item is WeaponItem) ...[
+            _infoRow(Icons.flash_on, 'Base Damage', '${item.damage}', Colors.red),
+            _infoRow(Icons.speed, 'Attack Speed', '${item.attackSpeed}x', Colors.orange),
+            if (item.critBonus > 0)
+              _infoRow(Icons.auto_awesome, 'Crit Chance', '+${(item.critBonus * 100).toInt()}%', Colors.yellow),
+            if (item.specialEffect != 'None')
+              _infoRow(Icons.star, 'Effect', item.specialEffect, Colors.purple),
+          ] else if (item is ArmorItem) ...[
+            _infoRow(Icons.shield, 'Defense', '+${item.defense}', Colors.blue),
+            _infoRow(Icons.favorite, 'Max Health', '+${item.health}', Colors.pink),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('CLOSE', style: TextStyle(color: Colors.white70)),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _infoRow(IconData icon, String label, String value, Color color) {
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        Icon(icon, color: color, size: 18),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        const Spacer(),
+        Flexible(
+          child: Text(
+            value,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+            textAlign: TextAlign.right,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+void _equipItem(BuildContext context, WidgetRef ref, ShopItem item, bool isAlreadyEquipped) {
+  if (isAlreadyEquipped) {
+    // Zaten equipped - info göster
+    _showItemInfo(context, item);
+    return;
+  }
+  
+  // Equip et
+  if (item is WeaponItem) {
+    ref.read(inventoryProvider.notifier).equipWeapon(item.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('⚔️ ${item.name} equipped!'),
+        backgroundColor: Colors.amber.shade700,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  } else if (item is ArmorItem) {
+    ref.read(inventoryProvider.notifier).equipArmor(item.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('🛡️ ${item.name} equipped!'),
+        backgroundColor: Colors.amber.shade700,
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
 }

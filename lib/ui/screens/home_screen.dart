@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/logic/navigation/navigation_provider.dart';
 import 'package:pomodoro_knight/logic/economy/economy_provider.dart';
 import 'package:pomodoro_knight/logic/upgrades/upgrades_provider.dart';
+import 'package:pomodoro_knight/logic/audio/audio_provider.dart';
 import 'package:pomodoro_knight/ui/screens/pomodoro_screen.dart';
 import 'package:pomodoro_knight/ui/screens/game_screen.dart';
 import 'package:pomodoro_knight/ui/screens/shop_page/shop_screen.dart';
+import 'package:pomodoro_knight/ui/widgets/sound_button.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +26,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   ];
 
   void _onItemTapped(int index) {
+    ref.read(audioProvider.notifier).playClick();
     ref.read(navigationIndexProvider.notifier).setIndex(index);
   }
 
@@ -50,7 +53,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              ListTile(
+              SoundListTile(
                 leading: const Icon(
                   Icons.monetization_on,
                   color: Color(0xFFFFD700),
@@ -71,7 +74,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   );
                 },
               ),
-              ListTile(
+              SoundListTile(
                 leading: const Icon(Icons.add_circle, color: Colors.blue),
                 title: const Text(
                   'Add 500 Gold',
@@ -89,7 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   );
                 },
               ),
-              ListTile(
+              SoundListTile(
                 leading: const Icon(Icons.remove_circle, color: Colors.red),
                 title: const Text(
                   'Reset Gold to 0',
@@ -107,7 +110,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   );
                 },
               ),
-              ListTile(
+              SoundListTile(
                 leading: const Icon(Icons.refresh, color: Colors.purple),
                 title: const Text(
                   'Reset All Upgrades',

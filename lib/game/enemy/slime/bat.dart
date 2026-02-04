@@ -6,6 +6,7 @@ import 'package:flame/sprite.dart';
 
 import 'package:pomodoro_knight/game/components/player.dart';
 import 'package:pomodoro_knight/game/components/projectile.dart';
+import 'package:pomodoro_knight/game/components/xp_effect.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 
 enum BatState { idle, attack, hurt, death }
@@ -152,21 +153,22 @@ class FlyingEnemy extends SpriteAnimationGroupComponent<BatState>
 
     if (distance <= detectionRange) {
       isChasing = true;
-      // Hover logic - oyuncunun biraz üstünde sabit dur, çok hızlı kaçmasın
-      double targetY = player.position.y - 100; // Biraz daha yukarıda
+      // Hover logic - oyuncunun üstünde SABİT dur, kaçma!
+      double targetY = player.position.y - 80; // Daha yakın
       double targetX = player.position.x;
 
       Vector2 targetPos = Vector2(targetX, targetY);
       Vector2 direction = (targetPos - position);
       double distToTarget = direction.length;
 
-      // Daha yavaş hareket - vurması kolay olsun
-      double moveSpeed = 60.0; // 150'den 60'a düşürüldü
+      // Hızlı hareket
+      double moveSpeed = 70.0;
 
-      if (distToTarget > 30) { // 5'ten 30'a - daha erken durur
+      if (distToTarget > 40) {
         direction.normalize();
         position += direction * moveSpeed * dt;
       }
+      // Hedefte kal - hareket etme!
 
       // Shooting logic
       shootTimer += dt;
@@ -240,6 +242,13 @@ class FlyingEnemy extends SpriteAnimationGroupComponent<BatState>
       _isDead = true;
       current = BatState.death;
       gameRef.levelManager.onEnemyKilled();
+      
+      // XP efekti spawn et (artırılmış)
+      spawnXpEffect(
+        gameRef: gameRef,
+        position: position.clone(),
+        xpAmount: 5, // 2'den 5'e artırıldı
+      );
     } else {
       _isHurt = true;
       _isAttacking = false; // Hurt interrupts attack

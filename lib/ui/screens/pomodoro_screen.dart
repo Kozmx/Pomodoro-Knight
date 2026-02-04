@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/logic/pomodoro/pomodoro_provider.dart';
+import 'package:pomodoro_knight/logic/audio/audio_provider.dart';
+import 'package:pomodoro_knight/ui/screens/settings_screen.dart';
 import 'package:pomodoro_knight/ui/widgets/gold_display.dart';
 
 class PomodoroScreen extends ConsumerWidget {
@@ -89,8 +91,21 @@ class PomodoroScreen extends ConsumerWidget {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: const [
-          Padding(padding: EdgeInsets.only(right: 16.0), child: GoldDisplay()),
+        actions: [
+          const Padding(
+            padding: EdgeInsets.only(right: 8.0),
+            child: GoldDisplay(),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              ref.read(audioProvider.notifier).playClick();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
         ],
       ),
       drawer: Drawer(

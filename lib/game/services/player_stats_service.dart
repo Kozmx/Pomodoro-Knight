@@ -13,6 +13,13 @@ class PlayerStatsService {
   double coinMultiplier = 1.0;
   double criticalChance = 0.0;
   
+  // Equipped weapon stats
+  String? equippedWeaponId;
+  int weaponBaseDamage = 10;
+  double weaponAttackSpeed = 1.0;
+  double weaponCritBonus = 0.0;
+  String weaponSpecialEffect = 'None';
+  
   // Callback: Health upgrade alındığında player'ı güncellemek için
   Function(double oldMaxHealth, double newMaxHealth)? onMaxHealthChanged;
 
@@ -40,6 +47,30 @@ class PlayerStatsService {
     }
   }
 
+  /// Equipped weapon'ı güncelle
+  void updateEquippedWeapon({
+    required String? weaponId,
+    required int baseDamage,
+    required double attackSpeed,
+    required double critBonus,
+    required String specialEffect,
+  }) {
+    equippedWeaponId = weaponId;
+    weaponBaseDamage = baseDamage;
+    weaponAttackSpeed = attackSpeed;
+    weaponCritBonus = critBonus;
+    weaponSpecialEffect = specialEffect;
+  }
+  
+  /// Toplam crit chance (upgrade + weapon)
+  double get totalCritChance => criticalChance + weaponCritBonus;
+  
+  /// Toplam attack speed (upgrade * weapon)
+  double get totalAttackSpeed => attackSpeedMultiplier * weaponAttackSpeed;
+  
+  /// Toplam base damage
+  double get totalBaseDamage => weaponBaseDamage * damageMultiplier;
+
   /// Debug bilgi
   @override
   String toString() {
@@ -51,6 +82,7 @@ PlayerStats:
   Defense: ${defenseMultiplier.toStringAsFixed(2)}x
   Coin: ${coinMultiplier.toStringAsFixed(2)}x
   Crit: ${(criticalChance * 100).toStringAsFixed(1)}%
+  Weapon: $equippedWeaponId (DMG:$weaponBaseDamage, SPD:$weaponAttackSpeed, CRIT:+${(weaponCritBonus*100).toInt()}%)
 ''';
   }
 }

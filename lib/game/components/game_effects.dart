@@ -88,6 +88,7 @@ class HealText extends PositionComponent {
 /// Kat geçiş animasyonu - büyük yazı ortada
 class LevelTransitionOverlay extends PositionComponent {
   final int level;
+  final bool isBossFight;
   double _lifeTime = 0;
   final double _duration = 2.5;
   double _alpha = 0;
@@ -96,6 +97,7 @@ class LevelTransitionOverlay extends PositionComponent {
   LevelTransitionOverlay({
     required this.level,
     required Vector2 screenSize,
+    this.isBossFight = false,
   }) : super(
           position: screenSize / 2,
           size: Vector2.zero(),
@@ -135,45 +137,90 @@ class LevelTransitionOverlay extends PositionComponent {
     canvas.scale(_scale, _scale);
 
     // Arka plan blur
+    final bgColor = isBossFight ? Colors.red.shade900 : Colors.black;
     final bgPaint = Paint()
-      ..color = Colors.black.withOpacity(_alpha * 0.6);
+      ..color = bgColor.withOpacity(_alpha * 0.7);
     canvas.drawRect(
-      Rect.fromCenter(center: Offset.zero, width: 400, height: 150),
+      Rect.fromCenter(center: Offset.zero, width: 500, height: 180),
       bgPaint,
     );
 
-    // "KAT X" yazısı
-    final textPainter = TextPainter(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: 'KAT ',
-            style: TextStyle(
-              fontFamily: 'Minecraftia',
-              color: Colors.white.withOpacity(_alpha),
-              fontSize: 48,
-              fontWeight: FontWeight.bold,
+    TextPainter textPainter;
+    
+    if (isBossFight) {
+      // Boss Fight yazısı
+      textPainter = TextPainter(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: '⚔️ BOSS FIGHT ⚔️\n',
+              style: TextStyle(
+                fontFamily: 'Minecraftia',
+                color: Colors.red.withOpacity(_alpha),
+                fontSize: 42,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: Colors.redAccent.withOpacity(_alpha * 0.8),
+                    blurRadius: 20,
+                  ),
+                ],
+              ),
             ),
-          ),
-          TextSpan(
-            text: '$level',
-            style: TextStyle(
-              fontFamily: 'Minecraftia',
-              color: Colors.cyanAccent.withOpacity(_alpha),
-              fontSize: 64,
-              fontWeight: FontWeight.bold,
-              shadows: [
-                Shadow(
-                  color: Colors.cyan.withOpacity(_alpha * 0.8),
-                  blurRadius: 20,
-                ),
-              ],
+            TextSpan(
+              text: 'SLIME KING',
+              style: TextStyle(
+                fontFamily: 'Minecraftia',
+                color: Colors.yellow.withOpacity(_alpha),
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: Colors.orange.withOpacity(_alpha * 0.8),
+                    blurRadius: 15,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
-      ),
-      textDirection: ui.TextDirection.ltr,
-    );
+          ],
+        ),
+        textDirection: ui.TextDirection.ltr,
+        textAlign: TextAlign.center,
+      );
+    } else {
+      // Normal kat yazısı
+      textPainter = TextPainter(
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: 'KAT ',
+              style: TextStyle(
+                fontFamily: 'Minecraftia',
+                color: Colors.white.withOpacity(_alpha),
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextSpan(
+              text: '$level',
+              style: TextStyle(
+                fontFamily: 'Minecraftia',
+                color: Colors.cyanAccent.withOpacity(_alpha),
+                fontSize: 64,
+                fontWeight: FontWeight.bold,
+                shadows: [
+                  Shadow(
+                    color: Colors.cyan.withOpacity(_alpha * 0.8),
+                    blurRadius: 20,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        textDirection: ui.TextDirection.ltr,
+      );
+    }
 
     textPainter.layout();
     textPainter.paint(
@@ -307,6 +354,163 @@ class ElevatorReadyIndicator extends PositionComponent with HasGameRef {
     arrowPainter.paint(
       canvas,
       Offset((size.x - arrowPainter.width) / 2 + arrowOffset, 28),
+    );
+  }
+}
+
+/// Boss Health Bar - ekranın üstünde gösterilir
+class BossHealthBar extends PositionComponent with HasGameRef {
+  final String bossName;
+  final double maxHealth;
+  double currentHealth;
+  
+  double _animatedHealth = 1.0;
+  double _damageFlash = 0;
+  double _pulseTime = 0;
+  
+  BossHealthBar({
+    required this.bossName,
+    required this.maxHealth,
+    required this.currentHealth,
+    required Vector2 screenSize,
+  }) : super(
+          position: Vector2(screenSize.x / 2, 40),
+          size: Vector2(screenSize.x * 0.6, 40),
+          anchor: Anchor.center,
+          priority: 500,
+        );
+
+  void updateHealth(double newHealth) {
+    if (newHealth < currentHealth) {
+      _damageFlash = 1.0;
+    }
+    currentHealth = newHealth;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    
+    _pulseTime += dt;
+    
+    // Smooth health animation
+    final targetHealth = currentHealth / maxHealth;
+    _animatedHealth += (targetHealth - _animatedHealth) * dt * 5;
+    
+    // Damage flash fade
+    if (_damageFlash > 0) {
+      _damageFlash -= dt * 3;
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final barWidth = size.x;
+    final barHeight = 20.0;
+    final barY = size.y - barHeight;
+    
+    // Arka plan
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, barY, barWidth, barHeight),
+        const Radius.circular(10),
+      ),
+      Paint()..color = Colors.black.withOpacity(0.7),
+    );
+    
+    // Kırmızı hasar göstergesi (gecikmiş)
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(2, barY + 2, (barWidth - 4) * _animatedHealth, barHeight - 4),
+        const Radius.circular(8),
+      ),
+      Paint()..color = Colors.red.shade900,
+    );
+    
+    // Ana can barı
+    final healthPercent = (currentHealth / maxHealth).clamp(0.0, 1.0);
+    Color healthColor = Colors.green;
+    if (healthPercent < 0.3) {
+      healthColor = Colors.red;
+    } else if (healthPercent < 0.6) {
+      healthColor = Colors.orange;
+    }
+    
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(2, barY + 2, (barWidth - 4) * healthPercent, barHeight - 4),
+        const Radius.circular(8),
+      ),
+      Paint()..color = healthColor,
+    );
+    
+    // Flash efekti
+    if (_damageFlash > 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(0, barY, barWidth, barHeight),
+          const Radius.circular(10),
+        ),
+        Paint()..color = Colors.white.withOpacity(_damageFlash * 0.5),
+      );
+    }
+    
+    // Border
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, barY, barWidth, barHeight),
+        const Radius.circular(10),
+      ),
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    
+    // Boss ismi
+    final pulse = 1.0 + sin(_pulseTime * 2) * 0.05;
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '👑 $bossName 👑',
+        style: TextStyle(
+          fontFamily: 'Minecraftia',
+          color: Colors.yellow,
+          fontSize: 16 * pulse,
+          fontWeight: FontWeight.bold,
+          shadows: const [
+            Shadow(color: Colors.black, blurRadius: 4, offset: Offset(2, 2)),
+            Shadow(color: Colors.orange, blurRadius: 8),
+          ],
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset((barWidth - textPainter.width) / 2, 0),
+    );
+    
+    // HP yazısı
+    final hpPainter = TextPainter(
+      text: TextSpan(
+        text: '${currentHealth.toInt()} / ${maxHealth.toInt()}',
+        style: const TextStyle(
+          fontFamily: 'Minecraftia',
+          color: Colors.white,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          shadows: [
+            Shadow(color: Colors.black, blurRadius: 2, offset: Offset(1, 1)),
+          ],
+        ),
+      ),
+      textDirection: ui.TextDirection.ltr,
+    );
+    hpPainter.layout();
+    hpPainter.paint(
+      canvas,
+      Offset((barWidth - hpPainter.width) / 2, barY + 4),
     );
   }
 }

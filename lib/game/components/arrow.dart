@@ -33,7 +33,7 @@ class Arrow extends PositionComponent with CollisionCallbacks {
     this.arrowColor = Colors.brown,
     this.specialEffect = 'None',
     this.maxPierce = 0,
-  }) : super(position: position, size: Vector2(24, 8)) {
+  }) : super(position: position, size: Vector2(32, 32)) {
     anchor = Anchor.center;
     // Ok yönüne göre rotasyon
     _rotation = atan2(velocity.y, velocity.x);
@@ -41,21 +41,33 @@ class Arrow extends PositionComponent with CollisionCallbacks {
 
   @override
   Future<void> onLoad() async {
-    add(RectangleHitbox());
+    // CircleHitbox - component merkezinde
+    add(CircleHitbox(
+      radius: 16,
+      position: Vector2(16, 16),  // Component merkezine (32x32'nin ortası)
+      anchor: Anchor.center,
+    ));
   }
 
   @override
   void render(Canvas canvas) {
     canvas.save();
-    canvas.translate(size.x / 2, size.y / 2);
-    canvas.rotate(_rotation);
-    canvas.translate(-size.x / 2, -size.y / 2);
     
-    // Ok gövdesi
+    // Merkeze translate et, döndür, geri çık
+    final centerX = size.x / 2;
+    final centerY = size.y / 2;
+    canvas.translate(centerX, centerY);
+    canvas.rotate(_rotation);
+    
+    // Ok boyutları (merkeze göre çizim)
+    const arrowLength = 24.0;
+    const arrowHeight = 8.0;
+    
+    // Ok gövdesi - merkeze göre
     final bodyPaint = Paint()..color = arrowColor;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, size.y / 4, size.x * 0.7, size.y / 2),
+        Rect.fromLTWH(-arrowLength / 2, -arrowHeight / 4, arrowLength * 0.7, arrowHeight / 2),
         const Radius.circular(2),
       ),
       bodyPaint,
@@ -63,9 +75,9 @@ class Arrow extends PositionComponent with CollisionCallbacks {
     
     // Ok ucu (üçgen)
     final tipPath = Path()
-      ..moveTo(size.x * 0.7, 0)
-      ..lineTo(size.x, size.y / 2)
-      ..lineTo(size.x * 0.7, size.y)
+      ..moveTo(arrowLength * 0.2, -arrowHeight / 2)
+      ..lineTo(arrowLength / 2, 0)
+      ..lineTo(arrowLength * 0.2, arrowHeight / 2)
       ..close();
     
     final tipPaint = Paint()..color = arrowColor.withOpacity(0.9);
@@ -78,20 +90,20 @@ class Arrow extends PositionComponent with CollisionCallbacks {
       ..style = PaintingStyle.stroke;
     
     canvas.drawLine(
-      Offset(4, 0),
-      Offset(0, size.y / 2),
+      Offset(-arrowLength / 2 + 4, -arrowHeight / 2),
+      Offset(-arrowLength / 2, 0),
       featherPaint,
     );
     canvas.drawLine(
-      Offset(4, size.y),
-      Offset(0, size.y / 2),
+      Offset(-arrowLength / 2 + 4, arrowHeight / 2),
+      Offset(-arrowLength / 2, 0),
       featherPaint,
     );
     
     // Critical ise parlama efekti
     if (isCritical) {
       canvas.drawCircle(
-        Offset(size.x / 2, size.y / 2),
+        Offset.zero,
         12,
         Paint()
           ..color = Colors.yellow.withOpacity(0.4)

@@ -62,12 +62,15 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
   final GameAudioService _audioService = GameAudioService();
   bool _wasMoving = false;
   
-  // Dash sistemi
+  // Dash/Dodge sistemi
   bool _isDashing = false;
   double _dashTimer = 0;
-  final double _dashDuration = 0.15;
+  final double _dashDuration = 0.2; // Biraz uzatıldı (0.15 -> 0.2)
   final double _dashSpeed = 800;
   Vector2 _dashDirection = Vector2.zero();
+  
+  /// Dodge kontrolü - boss projectile'ları geçer
+  bool get isDodging => _isDashing;
   
   // Skill Buff sistemi
   double _skillBuffTimer = 0;

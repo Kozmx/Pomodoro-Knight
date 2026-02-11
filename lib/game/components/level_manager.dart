@@ -7,6 +7,7 @@ import 'package:pomodoro_knight/game/components/game_effects.dart';
 import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
 import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
+import 'package:pomodoro_knight/game/enemy/boss/slime_king.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
@@ -19,6 +20,10 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
   int enemiesKilled = 0;
   int totalEnemies = 0;
   LevelState state = LevelState.playing;
+  
+  // Boss sistemi
+  bool get isBossFloor => currentLevel % 10 == 0 && currentLevel > 0;
+  SlimeKing? _currentBoss;
   
   // Asansör hazır bildirimi
   ElevatorReadyIndicator? _elevatorIndicator;
@@ -63,31 +68,115 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
 
   void startLevel() {
     print("LevelManager: startLevel called for level $currentLevel");
-    state = LevelState.playing;
     enemiesKilled = 0;
     _elevatorSpawned = false;
+    _currentBoss = null;
     
     // Canı fulle
     gameRef.player.currentHealth = gameRef.player.maxHealth;
 
-    // Calculate enemies for this level (simple progression)
-    // Azaltılmış düşman sayıları - daha az iç içe girme için
-    int enemyCount = 1 + (currentLevel ~/ 2); // Önceki: 2 + currentLevel
-    int flyingEnemyCount = 1 + (currentLevel ~/ 3); // Önceki: 1 + currentLevel ~/ 2
-    int flowerCount = currentLevel ~/ 3; // Önceki: currentLevel ~/ 2
-    totalEnemies = enemyCount + flyingEnemyCount + flowerCount;
+    // Boss katı mı kontrol et
+    if (isBossFloor) {
+      state = LevelState.bossFight;
+      totalEnemies = 1; // Sadece boss
+      print("LevelManager: BOSS FLOOR! Spawning SlimeKing");
+      
+      // Boss için basit yapı
+      _spawnBossArena();
+      _spawnBoss();
+    } else {
+      state = LevelState.playing;
+      
+      // Calculate enemies for this level (simple progression)
+      // Azaltılmış düşman sayıları - daha az iç içe girme için
+      int enemyCount = 1 + (currentLevel ~/ 2);
+      int flyingEnemyCount = 1 + (currentLevel ~/ 3);
+      int flowerCount = currentLevel ~/ 3;
+      totalEnemies = enemyCount + flyingEnemyCount + flowerCount;
 
-    print(
-      "LevelManager: Spawning $enemyCount ground, $flyingEnemyCount flying, $flowerCount flower enemies",
-    );
+      print(
+        "LevelManager: Spawning $enemyCount ground, $flyingEnemyCount flying, $flowerCount flower enemies",
+      );
 
-    // Rampa, platform ve kapıyı spawn et (asansör hariç - düşmanlar ölünce gelecek)
-    _spawnStructures();
-    
-    _spawnEnemies(enemyCount, flyingEnemyCount, flowerCount);
+      // Rampa, platform ve kapıyı spawn et (asansör hariç - düşmanlar ölünce gelecek)
+      _spawnStructures();
+      
+      _spawnEnemies(enemyCount, flyingEnemyCount, flowerCount);
+    }
     
     // Oyuncuyu platformda spawn et
     _spawnPlayerOnPlatform();
+  }
+  
+  /// Boss arena için basit yapı
+  void _spawnBossArena() {
+    // Önce eski yapıları temizle
+    gameRef.world.children.whereType<Ramp>().forEach((e) => e.removeFromParent());
+    gameRef.world.children.whereType<Platform>().forEach((e) => e.removeFromParent());
+    gameRef.world.children.whereType<Elevator>().forEach((e) => e.removeFromParent());
+    _platformPositions.clear();
+    
+    // Boss arenası - düz zemin, asansör platformu sağda
+    final platformStartX = rampStartX + 200;
+    final platformWidth = GameBackground.worldWidth - platformStartX - 20;
+    final platform = Platform(
+      pos: Vector2(platformStartX, platformY),
+      width: platformWidth,
+    );
+    gameRef.world.add(platform);
+    
+    // Rampa
+    final ramp = Ramp(
+      startPos: Vector2(rampStartX, 800),
+      endPos: Vector2(rampStartX + 200, platformY),
+    );
+    gameRef.world.add(ramp);
+  }
+  
+  // Boss health bar referansı
+  BossHealthBar? _bossHealthBar;
+  
+  /// Boss spawn et
+  void _spawnBoss() {
+    final bossLevel = (currentLevel / 10).floor().toDouble();
+    _currentBoss = SlimeKing(
+      player: gameRef.player,
+      level: bossLevel,
+    )..position = Vector2(400, 650); // Sol tarafta spawn
+    
+    gameRef.world.add(_currentBoss!);
+    
+    // Boss health bar ekle (viewport'a - ekranın üstünde sabit)
+    _bossHealthBar = BossHealthBar(
+      bossName: _currentBoss!.bossName,
+      maxHealth: _currentBoss!.maxHealth,
+      currentHealth: _currentBoss!.currentHealth,
+      screenSize: gameRef.size,
+    );
+    gameRef.camera.viewport.add(_bossHealthBar!);
+    
+    // Boss fight müziği veya ses (opsiyonel)
+    GameAudioService().playElevatorDing(); // Placeholder
+  }
+  
+  /// Boss health bar'ı güncelle (SlimeKing tarafından çağrılır)
+  void updateBossHealth(double newHealth) {
+    _bossHealthBar?.updateHealth(newHealth);
+  }
+  
+  /// Boss öldürüldüğünde çağrılır
+  void onBossKilled() {
+    print("LevelManager: BOSS KILLED!");
+    _currentBoss = null;
+    
+    // Health bar'ı kaldır
+    _bossHealthBar?.removeFromParent();
+    _bossHealthBar = null;
+    
+    _spawnElevator();
+    
+    // Ekstra ödül
+    GameAudioService().playLevelComplete();
   }
 
   void _spawnPlayerOnPlatform() {
@@ -384,10 +473,14 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     // Level complete sesi
     GameAudioService().playLevelComplete();
 
+    // Sonraki kat boss katı mı?
+    final nextIsBoss = currentLevel % 10 == 0 && currentLevel > 0;
+
     // Kat geçiş animasyonu göster
     final overlay = LevelTransitionOverlay(
       level: currentLevel,
       screenSize: gameRef.size,
+      isBossFight: nextIsBoss,
     );
     gameRef.camera.viewport.add(overlay);
 

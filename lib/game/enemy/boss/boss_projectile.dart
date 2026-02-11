@@ -7,7 +7,6 @@ import 'package:pomodoro_knight/game/components/player.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 
 /// Boss tarafından fırlatılan projectile
-/// Oyuncunun dodge etmesi gereken saldırı
 class BossProjectile extends PositionComponent
     with CollisionCallbacks, HasGameRef<FocusGame> {
   final Vector2 velocity;
@@ -18,7 +17,6 @@ class BossProjectile extends PositionComponent
   double _animTime = 0;
   bool _hasHit = false;
   
-  // Trail efekti için pozisyon geçmişi
   final List<Vector2> _trail = [];
   static const int _maxTrailLength = 8;
 
@@ -27,14 +25,13 @@ class BossProjectile extends PositionComponent
     required this.velocity,
     required this.damage,
     this.color = const Color(0xFF4CAF50),
-    double size = 24,
-  }) : super(position: position, size: Vector2.all(size)) {
+    double projectileSize = 24,
+  }) : super(position: position, size: Vector2.all(projectileSize)) {
     anchor = Anchor.center;
   }
 
   @override
   Future<void> onLoad() async {
-    // Hitbox - düşmanı dodge etmek için biraz daha küçük
     add(CircleHitbox(
       radius: size.x * 0.4,
       position: Vector2(size.x / 2, size.y / 2),
@@ -49,21 +46,17 @@ class BossProjectile extends PositionComponent
     _animTime += dt;
     lifeTime += dt;
     
-    // Pozisyon güncelle
     position += velocity * dt;
     
-    // Trail güncelle
     _trail.insert(0, position.clone());
     if (_trail.length > _maxTrailLength) {
       _trail.removeLast();
     }
     
-    // Süre aşımı
     if (lifeTime > 5.0) {
       removeFromParent();
     }
     
-    // Ekran dışı kontrolü
     if (position.x < -100 || position.x > 2200 || 
         position.y < -100 || position.y > 1000) {
       removeFromParent();
@@ -82,17 +75,13 @@ class BossProjectile extends PositionComponent
     if (other is Player) {
       // Oyuncu dodge yapıyor mu?
       if (other.isDodging) {
-        // Başarılı dodge!
         _showDodgeText();
         removeFromParent();
         return;
       }
       
-      // Hasar ver
       other.takeDamage(damage, position);
       _hasHit = true;
-      
-      // Hit efekti
       _spawnHitEffect();
       removeFromParent();
     }
@@ -110,7 +99,7 @@ class BossProjectile extends PositionComponent
 
   @override
   void render(Canvas canvas) {
-    // Trail çiz
+    // Trail
     for (int i = 0; i < _trail.length; i++) {
       final trailPos = _trail[i] - position;
       final opacity = (1.0 - i / _maxTrailLength) * 0.5;
@@ -150,7 +139,7 @@ class BossProjectile extends PositionComponent
       Paint()..color = Colors.white.withOpacity(0.6),
     );
     
-    // Tehlike göstergesi (kırmızı çerçeve)
+    // Tehlike çerçevesi
     canvas.drawCircle(
       centerOffset,
       size.x / 2 * pulse + 2,
@@ -162,7 +151,6 @@ class BossProjectile extends PositionComponent
   }
 }
 
-/// Dodge başarılı yazısı
 class _DodgeText extends TextComponent {
   double _opacity = 1.0;
   
@@ -214,7 +202,6 @@ class _DodgeText extends TextComponent {
   }
 }
 
-/// Hit efekti
 class _HitEffect extends PositionComponent {
   final Color color;
   double _time = 0;
@@ -250,8 +237,7 @@ class _HitEffect extends PositionComponent {
     canvas.drawCircle(
       Offset(size.x / 2, size.y / 2),
       radius * 0.6,
-      Paint()
-        ..color = Colors.white.withOpacity(opacity * 0.5),
+      Paint()..color = Colors.white.withOpacity(opacity * 0.5),
     );
   }
 }

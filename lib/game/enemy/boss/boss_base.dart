@@ -13,15 +13,7 @@ enum BossState {
   attacking,     // Saldırı fırlatıyor
   vulnerable,    // Savunmasız - oyuncu saldırabilir
   stunned,       // Sersemletilmiş
-  enraged,       // Öfkeli mod (düşük HP)
   death,         // Ölüyor
-}
-
-/// Boss saldırı fazı
-enum BossAttackPhase {
-  phase1,  // Normal saldırılar
-  phase2,  // Rage modu - daha hızlı saldırılar
-  phase3,  // Desperate - yeni saldırı kalıpları
 }
 
 /// Tüm boss'lar için base class
@@ -37,7 +29,6 @@ abstract class BossBase extends PositionComponent
   
   // State
   BossState currentState = BossState.idle;
-  BossAttackPhase attackPhase = BossAttackPhase.phase1;
   
   // Timing
   double stateTimer = 0;
@@ -47,9 +38,7 @@ abstract class BossBase extends PositionComponent
   
   // Flags
   bool isDead = false;
-  bool isVulnerable = false;
   int attackPattern = 0;
-  int attacksInPattern = 0;
   
   // Audio
   final GameAudioService _audioService = GameAudioService();
@@ -65,10 +54,10 @@ abstract class BossBase extends PositionComponent
   @override
   Future<void> onLoad() async {
     anchor = Anchor.center;
-    // Hitbox ekle - Boss için daha büyük
+    // Büyük hitbox - Boss'a vurulabilsin
     add(RectangleHitbox(
-      position: Vector2(size.x * 0.2, size.y * 0.2),
-      size: Vector2(size.x * 0.6, size.y * 0.6),
+      position: Vector2(size.x * 0.1, size.y * 0.1),
+      size: Vector2(size.x * 0.8, size.y * 0.8),
     ));
   }
 
@@ -79,9 +68,6 @@ abstract class BossBase extends PositionComponent
     if (isDead) return;
     
     stateTimer += dt;
-    
-    // Phase kontrolü
-    _updateAttackPhase();
     
     // State machine
     switch (currentState) {
@@ -100,22 +86,8 @@ abstract class BossBase extends PositionComponent
       case BossState.stunned:
         updateStunned(dt);
         break;
-      case BossState.enraged:
-        updateEnraged(dt);
-        break;
       case BossState.death:
         break;
-    }
-  }
-  
-  void _updateAttackPhase() {
-    final healthPercent = currentHealth / maxHealth;
-    if (healthPercent <= 0.3 && attackPhase != BossAttackPhase.phase3) {
-      attackPhase = BossAttackPhase.phase3;
-      onPhaseChange(BossAttackPhase.phase3);
-    } else if (healthPercent <= 0.6 && attackPhase == BossAttackPhase.phase1) {
-      attackPhase = BossAttackPhase.phase2;
-      onPhaseChange(BossAttackPhase.phase2);
     }
   }
   
@@ -127,16 +99,9 @@ abstract class BossBase extends PositionComponent
     onStateChange(newState);
   }
   
-  /// Hasar al
+  /// Hasar al - BOSS HER ZAMAN HASAR ALABİLİR
   void takeDamage(double damage) {
     if (isDead) return;
-    
-    // Sadece vulnerable veya stunned iken hasar alabilir
-    if (!isVulnerable && currentState != BossState.stunned && currentState != BossState.vulnerable) {
-      // Hasar alamaz - kalkan efekti göster
-      onBlockedDamage();
-      return;
-    }
     
     currentHealth -= damage;
     _audioService.playEnemyHit();
@@ -154,14 +119,12 @@ abstract class BossBase extends PositionComponent
   /// Stun et
   void stun(double duration) {
     stunDuration = duration;
-    isVulnerable = true;
     changeState(BossState.stunned);
   }
   
   /// Vulnerable yap (saldırı sonrası)
   void makeVulnerable(double duration) {
     vulnerableDuration = duration;
-    isVulnerable = true;
     changeState(BossState.vulnerable);
   }
   
@@ -171,12 +134,9 @@ abstract class BossBase extends PositionComponent
   void updateAttacking(double dt);
   void updateVulnerable(double dt);
   void updateStunned(double dt);
-  void updateEnraged(double dt);
   
   void onStateChange(BossState newState);
-  void onPhaseChange(BossAttackPhase newPhase);
   void onDamageTaken(double damage);
-  void onBlockedDamage();
   void onDeath();
   
   /// Saldırı pattern'ını başlat
@@ -186,26 +146,26 @@ abstract class BossBase extends PositionComponent
   void render(Canvas canvas) {
     super.render(canvas);
     
-    // Boss health bar (büyük)
+    // Boss health bar (boss'un üzerinde)
     _renderHealthBar(canvas);
     
-    // State indicator (debug)
-    _renderStateIndicator(canvas);
+    // Boss ismi
+    _renderBossName(canvas);
   }
   
   void _renderHealthBar(Canvas canvas) {
-    final barWidth = size.x * 0.8;
-    final barHeight = 10.0;
+    final barWidth = size.x * 0.9;
+    final barHeight = 12.0;
     final barX = (size.x - barWidth) / 2;
-    final barY = -25.0;
+    final barY = -30.0; // Boss'un üstünde
     
-    // Background
+    // Arka plan
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(barX, barY, barWidth, barHeight),
-        const Radius.circular(5),
+        const Radius.circular(6),
       ),
-      Paint()..color = Colors.black.withOpacity(0.7),
+      Paint()..color = Colors.black.withOpacity(0.8),
     );
     
     // Health
@@ -220,7 +180,7 @@ abstract class BossBase extends PositionComponent
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(barX + 2, barY + 2, (barWidth - 4) * healthPercent, barHeight - 4),
-        const Radius.circular(3),
+        const Radius.circular(4),
       ),
       Paint()..color = healthColor,
     );
@@ -229,34 +189,55 @@ abstract class BossBase extends PositionComponent
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(barX, barY, barWidth, barHeight),
-        const Radius.circular(5),
+        const Radius.circular(6),
       ),
       Paint()
         ..color = Colors.white
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
+    
+    // HP yazısı
+    final hpText = '${currentHealth.toInt()} / ${maxHealth.toInt()}';
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: hpText,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 8,
+          fontWeight: FontWeight.bold,
+          shadows: [Shadow(color: Colors.black, blurRadius: 2)],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(barX + (barWidth - textPainter.width) / 2, barY + 1),
+    );
   }
   
-  void _renderStateIndicator(Canvas canvas) {
-    // Vulnerable iken yeşil parlama
-    if (isVulnerable) {
-      canvas.drawCircle(
-        Offset(size.x / 2, size.y / 2),
-        size.x * 0.6,
-        Paint()
-          ..color = Colors.green.withOpacity(0.2)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
-      );
-    }
-    
-    // Stunned iken yıldızlar (placeholder)
-    if (currentState == BossState.stunned) {
-      canvas.drawCircle(
-        Offset(size.x / 2, -15),
-        8,
-        Paint()..color = Colors.yellow,
-      );
-    }
+  void _renderBossName(Canvas canvas) {
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '👑 $bossName',
+        style: const TextStyle(
+          color: Colors.yellow,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+          shadows: [
+            Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1)),
+            Shadow(color: Colors.orange, blurRadius: 8),
+          ],
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset((size.x - textPainter.width) / 2, -50),
+    );
   }
 }

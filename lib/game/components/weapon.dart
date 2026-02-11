@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
 import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
+import 'package:pomodoro_knight/game/enemy/boss/boss_base.dart';
 import 'package:pomodoro_knight/game/components/damage_text.dart';
 import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 import 'package:pomodoro_knight/game/services/player_stats_service.dart';
@@ -73,6 +74,10 @@ class Weapon extends PositionComponent with CollisionCallbacks {
       _showDamageText(other.position, damage, isCritical);
       hitEnemy = true;
     } else if (other is FlowerEnemy) {
+      other.takeDamage(damage);
+      _showDamageText(other.position, damage, isCritical);
+      hitEnemy = true;
+    } else if (other is BossBase) {
       other.takeDamage(damage);
       _showDamageText(other.position, damage, isCritical);
       hitEnemy = true;

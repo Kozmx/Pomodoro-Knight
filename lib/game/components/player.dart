@@ -62,10 +62,10 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
   final GameAudioService _audioService = GameAudioService();
   bool _wasMoving = false;
   
-  // Dash/Dodge sistemi
+  // Dash sistemi
   bool _isDashing = false;
   double _dashTimer = 0;
-  final double _dashDuration = 0.2; // Biraz uzatıldı (0.15 -> 0.2)
+  final double _dashDuration = 0.2; // Biraz uzatıldı
   final double _dashSpeed = 800;
   Vector2 _dashDirection = Vector2.zero();
   
@@ -534,8 +534,9 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
     animationTicker?.reset();
 
-    // Spawn weapon logic
-    final weaponSize = Vector2(40, 40);
+    // Spawn weapon logic - boss savaşında daha büyük hitbox
+    final isBossFight = gameRef.levelManager.isBossFloor;
+    final weaponSize = isBossFight ? Vector2(80, 80) : Vector2(40, 40);
     final weaponPosition =
         position.clone() +
         Vector2(facingRight ? size.x / 2 : -size.x / 2 - weaponSize.x, -15);

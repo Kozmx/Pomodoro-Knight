@@ -4,6 +4,7 @@ import 'package:flame/events.dart';
 import 'package:flutter/material.dart';
 
 import 'package:pomodoro_knight/game/focus_game.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 /// Skill butonu - XP ile dolan, progress bar'lı
 class SkillButton extends PositionComponent with TapCallbacks, HasGameRef<FocusGame> {
@@ -54,6 +55,9 @@ class SkillButton extends PositionComponent with TapCallbacks, HasGameRef<FocusG
     _isActive = true;
     _progress = 0.0;
     _buffTimer = _buffDuration;
+    
+    // Ses efekti
+    GameAudioService().playPowerUp();
     
     // Buff'ları uygula
     _applyBuffs();
@@ -216,6 +220,10 @@ class DashButton extends PositionComponent with TapCallbacks, HasGameRef<FocusGa
   
   void _performDash() {
     _cooldown = _maxCooldown;
+    
+    // Ses efekti
+    GameAudioService().playDash();
+    
     gameRef.player.performDash();
   }
   
@@ -294,6 +302,10 @@ class ShieldButton extends PositionComponent with TapCallbacks, HasGameRef<Focus
   bool onTapDown(TapDownEvent event) {
     _isPressed = true;
     gameRef.player.setShield(true);
+    
+    // Ses efekti
+    GameAudioService().playShieldBlock();
+    
     return true;
   }
   

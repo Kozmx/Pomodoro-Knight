@@ -7,6 +7,7 @@ import 'package:flame/sprite.dart';
 import 'package:pomodoro_knight/game/components/player.dart';
 import 'package:pomodoro_knight/game/components/xp_effect.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 enum SlimeState {
   idle,
@@ -203,6 +204,7 @@ class Enemy extends SpriteAnimationGroupComponent<SlimeState>
       _isDead = true;
       current = SlimeState.death;
       gameRef.levelManager.onEnemyKilled();
+      GameAudioService().playSlimeDeath(); // Slime ölüm sesi
       
       // XP efekti spawn et (artırılmış - her katta skill açılabilsin)
       spawnXpEffect(

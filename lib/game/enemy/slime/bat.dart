@@ -8,6 +8,7 @@ import 'package:pomodoro_knight/game/components/player.dart';
 import 'package:pomodoro_knight/game/components/projectile.dart';
 import 'package:pomodoro_knight/game/components/xp_effect.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 enum BatState { idle, attack, hurt, death }
 
@@ -242,6 +243,7 @@ class FlyingEnemy extends SpriteAnimationGroupComponent<BatState>
       _isDead = true;
       current = BatState.death;
       gameRef.levelManager.onEnemyKilled();
+      GameAudioService().playEnemyDeath(); // Düşman ölüm sesi
       
       // XP efekti spawn et (artırılmış)
       spawnXpEffect(

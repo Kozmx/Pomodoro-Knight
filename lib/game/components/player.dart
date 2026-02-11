@@ -341,6 +341,7 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
           isGrounded) {
         velocity.y = -jumpForce;
         isGrounded = false;
+        _audioService.playJump(); // Zıplama sesi
       }
     } else {
       velocity.x = 0;
@@ -452,11 +453,14 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     if (isShielding || _isDead) return; // Zaten ölüyse hasar alma
 
     currentHealth -= amount;
+    _audioService.playPlayerHurt(); // Hasar sesi
+    
     if (currentHealth <= 0 && !_isDead) { // Sadece ilk kez ölüyorsa
       currentHealth = 0;
       _isDead = true;
       current = PlayerState.death;
       animationTicker?.reset();
+      _audioService.playPlayerDeath(); // Ölüm sesi
     } else if (!_isDead) {
       _isHurt = true;
       _isAttacking = false;
@@ -596,6 +600,10 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
             position: position.clone() + Vector2(0, -50),
             amount: _accumulatedHeal,
           ));
+          
+          // Heal sesi
+          _audioService.playHeal();
+          
           _accumulatedHeal = 0;
           _healTextCooldown = 0.5;
         }

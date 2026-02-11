@@ -1,15 +1,34 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'audio_service.dart';
 
-/// Ses ayarları state'i
+/// UI ses efektleri
+enum UiSound {
+  click1('click1.mp3'),
+  click2('click2.mp3'),
+  rollover('rollover2.mp3'),
+  switch1('switch10.mp3');
+
+  final String fileName;
+  const UiSound(this.fileName);
+
+  String get path => 'sfx/UI/$fileName';
+}
+
+/// Ses ayarları state sınıfı
 class AudioSettings {
   final bool soundEnabled;
   final double volume;
 
-  const AudioSettings({this.soundEnabled = true, this.volume = 0.5});
+  const AudioSettings({
+    this.soundEnabled = true,
+    this.volume = 0.7,
+  });
 
-  AudioSettings copyWith({bool? soundEnabled, double? volume}) {
+  AudioSettings copyWith({
+    bool? soundEnabled,
+    double? volume,
+  }) {
     return AudioSettings(
       soundEnabled: soundEnabled ?? this.soundEnabled,
       volume: volume ?? this.volume,
@@ -17,81 +36,79 @@ class AudioSettings {
   }
 }
 
-/// Ses ayarları notifier'ı
+/// UI sesleri için Notifier
 class AudioNotifier extends Notifier<AudioSettings> {
+  final AudioPlayer _player = AudioPlayer();
   late Box _box;
 
   @override
   AudioSettings build() {
-    _box = Hive.box('game_data');
-    final soundEnabled = _box.get('sound_enabled', defaultValue: true) as bool;
-    final volume = _box.get('sound_volume', defaultValue: 0.5) as double;
-
-    final audioService = ref.watch(audioServiceProvider);
-    audioService.setSoundEnabled(soundEnabled);
-    audioService.setVolume(volume);
-
-    return AudioSettings(soundEnabled: soundEnabled, volume: volume);
+    // Hive'dan ayarları yükle
+    try {
+      _box = Hive.box('game_data');
+      final soundEnabled = _box.get('ui_sound_enabled', defaultValue: true);
+      final volume = _box.get('ui_volume', defaultValue: 0.7);
+      return AudioSettings(
+        soundEnabled: soundEnabled,
+        volume: (volume as num).toDouble(),
+      );
+    } catch (e) {
+      // Hive box açık değilse varsayılan değerlerle devam et
+      return const AudioSettings();
+    }
   }
 
-  Future<void> _saveSettings() async {
-    await _box.put('sound_enabled', state.soundEnabled);
-    await _box.put('sound_volume', state.volume);
-  }
-
-  /// Sesi aç/kapat
-  void toggleSound() {
-    final newEnabled = !state.soundEnabled;
-    state = state.copyWith(soundEnabled: newEnabled);
-    ref.read(audioServiceProvider).setSoundEnabled(newEnabled);
-    _saveSettings();
-  }
-
-  /// Sesi aktif/pasif yap
+  /// Ses açma/kapama
   void setSoundEnabled(bool enabled) {
     state = state.copyWith(soundEnabled: enabled);
-    ref.read(audioServiceProvider).setSoundEnabled(enabled);
     _saveSettings();
   }
 
-  /// Ses seviyesini ayarla
+  /// Ses seviyesi ayarlama
   void setVolume(double volume) {
-    final clampedVolume = volume.clamp(0.0, 1.0);
-    state = state.copyWith(volume: clampedVolume);
-    ref.read(audioServiceProvider).setVolume(clampedVolume);
+    state = state.copyWith(volume: volume.clamp(0.0, 1.0));
     _saveSettings();
+  }
+
+  /// Ayarları kaydet
+  Future<void> _saveSettings() async {
+    try {
+      await _box.put('ui_sound_enabled', state.soundEnabled);
+      await _box.put('ui_volume', state.volume);
+    } catch (e) {
+      // Kaydetme hatası - sessizce devam et
+    }
+  }
+
+  /// Belirli bir ses çal
+  Future<void> playSound(UiSound sound) async {
+    if (!state.soundEnabled) return;
+    
+    try {
+      await _player.setVolume(state.volume);
+      await _player.play(AssetSource(sound.path));
+    } catch (e) {
+      // Ses çalma hatası - sessizce devam et
+    }
   }
 
   /// Tıklama sesi çal
   Future<void> playClick() async {
-    await ref.read(audioServiceProvider).playClick();
+    await playSound(UiSound.click1);
   }
 
   /// Hover sesi çal
   Future<void> playHover() async {
-    await ref.read(audioServiceProvider).playHover();
+    await playSound(UiSound.rollover);
   }
 
   /// Switch sesi çal
   Future<void> playSwitch() async {
-    await ref.read(audioServiceProvider).playSwitch();
-  }
-
-  /// Belirli bir UI sesi çal
-  Future<void> playSound(UiSound sound) async {
-    await ref.read(audioServiceProvider).playUiSound(sound);
+    await playSound(UiSound.switch1);
   }
 }
 
-/// Audio service provider
-final audioServiceProvider = Provider<AudioService>((ref) {
-  final service = AudioService();
-  service.initialize();
-  ref.onDispose(() => service.dispose());
-  return service;
-});
-
-/// Audio settings provider
-final audioProvider = NotifierProvider<AudioNotifier, AudioSettings>(() {
-  return AudioNotifier();
-});
+/// Audio provider
+final audioProvider = NotifierProvider<AudioNotifier, AudioSettings>(
+  AudioNotifier.new,
+);

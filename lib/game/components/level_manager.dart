@@ -8,6 +8,7 @@ import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
 import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
 import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
@@ -333,6 +334,9 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
       gameRef.world.add(elevator);
       print("LevelManager: Elevator spawned!");
       
+      // Asansör hazır sesi
+      GameAudioService().playElevatorDing();
+      
       // Asansör hazır bildirimi göster
       _elevatorIndicator = ElevatorReadyIndicator(
         position: Vector2(elevatorX, platformY - 80),
@@ -376,6 +380,9 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
   void _nextLevel() {
     currentLevel++;
     _saveLevel();
+
+    // Level complete sesi
+    GameAudioService().playLevelComplete();
 
     // Kat geçiş animasyonu göster
     final overlay = LevelTransitionOverlay(

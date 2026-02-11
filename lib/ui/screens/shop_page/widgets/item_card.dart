@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/core/models/shop_item.dart';
 import 'package:pomodoro_knight/logic/inventory/inventory_provider.dart';
 import 'package:pomodoro_knight/logic/economy/economy_provider.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 class ItemCard extends ConsumerWidget {
   final ShopItem item;
@@ -329,6 +330,9 @@ void _showItemDetails(
                           .read(inventoryProvider.notifier)
                           .purchaseItem(item, item.price);
                       if (success) {
+                        // Satın alma sesi çal
+                        GameAudioService().playPurchase();
+                        
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

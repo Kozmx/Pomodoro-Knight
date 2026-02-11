@@ -205,39 +205,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         shape: const CircularNotchedRectangle(),
         notchMargin: 8,
         child: SizedBox(
-          height: 60,
+          height: 56,
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               // Pomodoro
-              _buildNavItem(
-                icon: Icons.timer,
-                label: 'Pomodoro',
-                index: 0,
-                isSelected: bottomNavIndex == 0,
+              Expanded(
+                child: _buildNavItem(
+                  icon: Icons.timer,
+                  label: 'Timer',
+                  index: 0,
+                  isSelected: bottomNavIndex == 0,
+                ),
               ),
               // Shop
-              _buildNavItem(
-                icon: Icons.shopping_bag,
-                label: 'Shop',
-                index: 1,
-                isSelected: bottomNavIndex == 1,
+              Expanded(
+                child: _buildNavItem(
+                  icon: Icons.shopping_bag,
+                  label: 'Shop',
+                  index: 1,
+                  isSelected: bottomNavIndex == 1,
+                ),
               ),
               // Boş alan (FAB için)
-              const SizedBox(width: 48),
+              const SizedBox(width: 56),
               // Inventory
-              _buildNavItem(
-                icon: Icons.backpack,
-                label: 'Inventory',
-                index: 2,
-                isSelected: bottomNavIndex == 2,
+              Expanded(
+                child: _buildNavItem(
+                  icon: Icons.backpack,
+                  label: 'Bag',
+                  index: 2,
+                  isSelected: bottomNavIndex == 2,
+                ),
               ),
               // Leaderboard
-              _buildNavItem(
-                icon: Icons.leaderboard,
-                label: 'Leaderboard',
-                index: 3,
-                isSelected: bottomNavIndex == 3,
+              Expanded(
+                child: _buildNavItem(
+                  icon: Icons.leaderboard,
+                  label: 'Rank',
+                  index: 3,
+                  isSelected: bottomNavIndex == 3,
+                ),
               ),
             ],
           ),
@@ -293,24 +301,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }) {
     return InkWell(
       onTap: () => _onItemTapped(index),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
               color: isSelected ? Colors.deepPurpleAccent : Colors.grey,
-              size: 24,
+              size: 22,
             ),
             const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.deepPurpleAccent : Colors.grey,
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.deepPurpleAccent : Colors.grey,
+                  fontSize: 10,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
               ),
             ),
           ],

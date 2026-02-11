@@ -1,3 +1,5 @@
+import 'package:pomodoro_knight/core/models/shop_item.dart';
+
 /// Oyun içinden upgrade stat'larına erişmek için singleton servis
 /// Provider'lar Flame game içinde direkt kullanılamadığı için
 class PlayerStatsService {
@@ -19,9 +21,14 @@ class PlayerStatsService {
   double weaponAttackSpeed = 1.0;
   double weaponCritBonus = 0.0;
   String weaponSpecialEffect = 'None';
+  WeaponType weaponType = WeaponType.melee;
+  double projectileSpeed = 600.0;
   
   // Callback: Health upgrade alındığında player'ı güncellemek için
   Function(double oldMaxHealth, double newMaxHealth)? onMaxHealthChanged;
+  
+  // Callback: Silah değiştiğinde player'ı bilgilendirmek için
+  Function()? onWeaponChanged;
 
   /// Provider'dan statları güncelle
   void updateStats({
@@ -54,13 +61,23 @@ class PlayerStatsService {
     required double attackSpeed,
     required double critBonus,
     required String specialEffect,
+    required WeaponType type,
+    double? projSpeed,
   }) {
     equippedWeaponId = weaponId;
     weaponBaseDamage = baseDamage;
     weaponAttackSpeed = attackSpeed;
     weaponCritBonus = critBonus;
     weaponSpecialEffect = specialEffect;
+    weaponType = type;
+    projectileSpeed = projSpeed ?? 600.0;
+    
+    // Silah değişikliğini bildir
+    onWeaponChanged?.call();
   }
+  
+  /// Silah ranged mi?
+  bool get isRangedWeapon => weaponType == WeaponType.ranged;
   
   /// Toplam crit chance (upgrade + weapon)
   double get totalCritChance => criticalChance + weaponCritBonus;

@@ -7,6 +7,7 @@ import 'package:pomodoro_knight/logic/navigation/navigation_provider.dart';
 import 'package:pomodoro_knight/logic/upgrades/upgrades_provider.dart';
 import 'package:pomodoro_knight/logic/inventory/inventory_provider.dart';
 import 'package:pomodoro_knight/core/data/mock_shop_items.dart';
+import 'package:pomodoro_knight/core/models/shop_item.dart';
 
 import 'package:pomodoro_knight/game/components/start_menu.dart';
 
@@ -42,6 +43,8 @@ class GameScreen extends ConsumerWidget {
         attackSpeed: weapon.attackSpeed,
         critBonus: weapon.critBonus,
         specialEffect: weapon.specialEffect,
+        type: weapon.weaponType,
+        projSpeed: weapon.projectileSpeed,
       );
     } else {
       // Default starter weapon
@@ -51,6 +54,7 @@ class GameScreen extends ConsumerWidget {
         attackSpeed: 1.0,
         critBonus: 0.0,
         specialEffect: 'None',
+        type: WeaponType.melee,
       );
     }
 

@@ -82,12 +82,12 @@ class _WeaponsTab extends ConsumerWidget {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 0.75,
       ),
       itemCount: ownedWeapons.length,
       itemBuilder: (context, index) {
@@ -116,12 +116,12 @@ class _ArmorsTab extends ConsumerWidget {
     }
 
     return GridView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 0.75,
       ),
       itemCount: ownedArmors.length,
       itemBuilder: (context, index) {
@@ -253,65 +253,70 @@ class _InventoryItemCardState extends ConsumerState<_InventoryItemCard>
                     : null,
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // Equipped badge
                     if (widget.isEquipped)
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
+                          horizontal: 6,
+                          vertical: 1,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.amber,
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
-                          '⚔️ EQUIPPED',
+                          'EQUIPPED',
                           style: TextStyle(
                             color: Colors.black,
-                            fontSize: 9,
+                            fontSize: 8,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       )
                     else
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 12),
 
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
 
                     // Icon
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: widget.item.color.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        widget.item.icon,
-                        color: widget.item.color,
-                        size: 26,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    // Item adı
-                    Text(
-                      widget.item.name,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: widget.item.color.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          widget.item.icon,
+                          color: widget.item.color,
+                          size: 22,
+                        ),
                       ),
                     ),
 
                     const SizedBox(height: 4),
+
+                    // Item adı
+                    Flexible(
+                      child: Text(
+                        widget.item.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 2),
 
                     // Stats preview
                     _buildStatsPreview(),
@@ -328,39 +333,47 @@ class _InventoryItemCardState extends ConsumerState<_InventoryItemCard>
   Widget _buildStatsPreview() {
     if (widget.item is WeaponItem) {
       final weapon = widget.item as WeaponItem;
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.flash_on, size: 12, color: Colors.red.shade300),
-          Text(
-            ' ${weapon.damage}',
-            style: TextStyle(fontSize: 10, color: Colors.red.shade300),
-          ),
-          const SizedBox(width: 8),
-          Icon(Icons.speed, size: 12, color: Colors.blue.shade300),
-          Text(
-            ' ${weapon.attackSpeed}x',
-            style: TextStyle(fontSize: 10, color: Colors.blue.shade300),
-          ),
-        ],
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.flash_on, size: 10, color: Colors.red.shade300),
+            Text(
+              '${weapon.damage}',
+              style: TextStyle(fontSize: 9, color: Colors.red.shade300),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.speed, size: 10, color: Colors.blue.shade300),
+            Text(
+              '${weapon.attackSpeed}x',
+              style: TextStyle(fontSize: 9, color: Colors.blue.shade300),
+            ),
+          ],
+        ),
       );
     } else if (widget.item is ArmorItem) {
       final armor = widget.item as ArmorItem;
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.shield, size: 12, color: Colors.blue.shade300),
-          Text(
-            ' ${armor.defense}',
-            style: TextStyle(fontSize: 10, color: Colors.blue.shade300),
-          ),
-          const SizedBox(width: 8),
-          Icon(Icons.favorite, size: 12, color: Colors.green.shade300),
-          Text(
-            ' +${armor.health}',
-            style: TextStyle(fontSize: 10, color: Colors.green.shade300),
-          ),
-        ],
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.shield, size: 10, color: Colors.blue.shade300),
+            Text(
+              '${armor.defense}',
+              style: TextStyle(fontSize: 9, color: Colors.blue.shade300),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.favorite, size: 10, color: Colors.green.shade300),
+            Text(
+              '+${armor.health}',
+              style: TextStyle(fontSize: 9, color: Colors.green.shade300),
+            ),
+          ],
+        ),
       );
     }
     return const SizedBox.shrink();

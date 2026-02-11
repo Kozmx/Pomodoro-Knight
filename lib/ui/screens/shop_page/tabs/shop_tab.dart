@@ -28,13 +28,13 @@ class ShopTab extends ConsumerWidget {
 
         // Silah kartları
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.85,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.75,
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
               return ItemCard(item: mockWeapons[index]);
@@ -59,13 +59,13 @@ class ShopTab extends ConsumerWidget {
 
         // Zırh kartları
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 3,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.85,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+              childAspectRatio: 0.75,
             ),
             delegate: SliverChildBuilderDelegate((context, index) {
               return ItemCard(item: mockArmors[index]);

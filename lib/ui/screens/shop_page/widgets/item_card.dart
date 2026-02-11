@@ -45,6 +45,7 @@ class ItemCard extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               // Owned/Equipped badge
               if (isOwned)
@@ -61,61 +62,68 @@ class ItemCard extends ConsumerWidget {
                     isEquipped ? 'EQUIPPED' : 'OWNED',
                     style: const TextStyle(
                       color: Colors.black,
-                      fontSize: 9,
+                      fontSize: 8,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
+                )
+              else
+                const SizedBox(height: 12),
 
               // Icon
-              Stack(
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: item.color.withOpacity(0.2),
-                      shape: BoxShape.circle,
+              Flexible(
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: item.color.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(item.icon, color: item.color, size: 22),
                     ),
-                    child: Icon(item.icon, color: item.color, size: 26),
-                  ),
-                  // Info button
-                  Positioned(
-                    right: -5,
-                    top: -5,
-                    child: GestureDetector(
-                      onTap: () => _showItemInfo(context, item),
-                      child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: Colors.blue,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 1),
-                        ),
-                        child: const Icon(
-                          Icons.info_outline,
-                          color: Colors.white,
-                          size: 12,
+                    // Info button
+                    Positioned(
+                      right: -4,
+                      top: -4,
+                      child: GestureDetector(
+                        onTap: () => _showItemInfo(context, item),
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 1),
+                          ),
+                          child: const Icon(
+                            Icons.info_outline,
+                            color: Colors.white,
+                            size: 10,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 2),
 
               // Item adı
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Text(
-                  item.name,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Text(
+                    item.name,
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -123,7 +131,7 @@ class ItemCard extends ConsumerWidget {
 
               // Fiyat veya Owned
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 3),
+                padding: const EdgeInsets.symmetric(vertical: 2),
                 decoration: BoxDecoration(
                   color: isOwned
                       ? Colors.green.withOpacity(0.2)
@@ -131,20 +139,20 @@ class ItemCard extends ConsumerWidget {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.max,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     if (!isOwned) ...[
                       const Icon(
                         Icons.monetization_on,
                         color: Color(0xFFFFD700),
-                        size: 16,
+                        size: 14,
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
                       Text(
                         '${item.price}',
                         style: const TextStyle(
                           color: Color(0xFFFFD700),
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -152,7 +160,7 @@ class ItemCard extends ConsumerWidget {
                       const Icon(
                         Icons.check_circle,
                         color: Colors.green,
-                        size: 18,
+                        size: 16,
                       ),
                   ],
                 ),

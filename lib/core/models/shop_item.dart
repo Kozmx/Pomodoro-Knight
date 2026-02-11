@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+/// Silah tipi - melee (yakın) veya ranged (uzak menzilli)
+enum WeaponType { melee, ranged }
+
 abstract class ShopItem {
   final String id;
   final String name;
@@ -23,6 +26,8 @@ class WeaponItem extends ShopItem {
   final double attackSpeed;
   final double critBonus;
   final String specialEffect;
+  final WeaponType weaponType;
+  final double? projectileSpeed; // Ranged silahlar için
 
   WeaponItem({
     required super.id,
@@ -35,6 +40,8 @@ class WeaponItem extends ShopItem {
     required this.attackSpeed,
     this.critBonus = 0.0,
     this.specialEffect = 'None',
+    this.weaponType = WeaponType.melee,
+    this.projectileSpeed,
   });
 }
 

@@ -1,16 +1,21 @@
 import 'dart:ui';
+import 'dart:math';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/cache.dart';
 import 'package:flame/sprite.dart';
 import 'package:flutter/material.dart' hide Image;
 import 'package:pomodoro_knight/game/components/weapon.dart';
+import 'package:pomodoro_knight/game/components/arrow.dart';
 import 'package:pomodoro_knight/game/components/game_effects.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 import 'package:pomodoro_knight/game/components/level_manager.dart';
 import 'package:pomodoro_knight/game/components/elevator.dart';
 import 'package:pomodoro_knight/game/services/player_stats_service.dart';
 import 'package:pomodoro_knight/game/services/game_audio_service.dart';
+import 'package:pomodoro_knight/game/enemy/slime/slime.dart';
+import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
+import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
 
 enum PlayerState {
   idle,
@@ -496,6 +501,18 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
     _isAttacking = true;
 
+    final statsService = PlayerStatsService();
+    
+    // Ranged mı melee mi kontrol et
+    if (statsService.isRangedWeapon) {
+      _performRangedAttack(statsService);
+    } else {
+      _performMeleeAttack(statsService);
+    }
+  }
+  
+  /// Yakın dövüş saldırısı (kılıç vb.)
+  void _performMeleeAttack(PlayerStatsService statsService) {
     // Kılıç swoosh sesi çal
     _audioService.playSwordSwoosh();
 
@@ -526,6 +543,122 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
       size: weaponSize,
     );
     parent?.add(weapon);
+  }
+  
+  /// Uzak menzilli saldırı (yay vb.)
+  void _performRangedAttack(PlayerStatsService statsService) {
+    // Ok sesi çal
+    _audioService.playSwordSwoosh(); // TODO: Ok sesi eklenebilir
+    
+    // Attack animasyonu
+    if (velocity.x.abs() > 0.1) {
+      current = PlayerState.walkAttack1;
+    } else {
+      current = PlayerState.attack1;
+    }
+    animationTicker?.reset();
+    
+    // En yakın düşmanı bul ve hedef al
+    final target = _findNearestEnemy();
+    
+    // Ok yönünü hesapla
+    Vector2 arrowVelocity;
+    if (target != null) {
+      // Düşmana doğru nişan al
+      final direction = (target - position).normalized();
+      arrowVelocity = direction * statsService.projectileSpeed;
+      
+      // Yüzü düşmana dön
+      if (direction.x > 0) {
+        facingRight = true;
+      } else if (direction.x < 0) {
+        facingRight = false;
+      }
+    } else {
+      // Düşman yoksa baktığı yöne ateş et
+      arrowVelocity = Vector2(
+        facingRight ? statsService.projectileSpeed : -statsService.projectileSpeed,
+        0,
+      );
+    }
+    
+    // Crit kontrolü
+    final Random random = Random();
+    final isCritical = random.nextDouble() < statsService.totalCritChance;
+    final damage = isCritical 
+        ? statsService.totalBaseDamage * 2 
+        : statsService.totalBaseDamage;
+    
+    // Ok rengi silaha göre
+    Color arrowColor;
+    final weaponId = statsService.equippedWeaponId ?? '';
+    if (weaponId.contains('fire')) {
+      arrowColor = Colors.deepOrange;
+    } else if (weaponId.contains('ice')) {
+      arrowColor = Colors.lightBlue;
+    } else if (weaponId.contains('crossbow')) {
+      arrowColor = Colors.amber;
+    } else {
+      arrowColor = Colors.brown;
+    }
+    
+    // Pierce sayısı (crossbow için)
+    int maxPierce = 0;
+    if (statsService.weaponSpecialEffect.contains('Pierce')) {
+      maxPierce = 2;
+    }
+    
+    // Ok spawn pozisyonu
+    final arrowPosition = position.clone() + 
+        Vector2(facingRight ? 30 : -30, -10);
+    
+    final arrow = Arrow(
+      position: arrowPosition,
+      velocity: arrowVelocity,
+      damage: damage,
+      isCritical: isCritical,
+      arrowColor: arrowColor,
+      specialEffect: statsService.weaponSpecialEffect,
+      maxPierce: maxPierce,
+    );
+    parent?.add(arrow);
+  }
+  
+  /// En yakın düşmanı bul (otomatik hedefleme)
+  Vector2? _findNearestEnemy() {
+    double nearestDistance = double.infinity;
+    Vector2? nearestPosition;
+    
+    // Maksimum hedefleme mesafesi
+    const maxRange = 500.0;
+    
+    // Tüm düşmanları tara
+    final parentComponent = parent;
+    if (parentComponent == null) return null;
+    
+    for (final component in parentComponent.children) {
+      Vector2? enemyPos;
+      
+      if (component is Enemy) {
+        enemyPos = component.position;
+      }
+      if (component is FlyingEnemy) {
+        enemyPos = component.position;
+      }
+      if (component is FlowerEnemy) {
+        enemyPos = component.position;
+      }
+      
+      if (enemyPos != null) {
+        final distance = position.distanceTo(enemyPos);
+        if (distance < nearestDistance && distance < maxRange) {
+          nearestDistance = distance;
+          nearestPosition = enemyPos.clone();
+        }
+      }
+    }
+    
+    return nearestPosition;
   }
 
   /// Oyuncuyu yeniden canlandır - tüm state'leri sıfırla

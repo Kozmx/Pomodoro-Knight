@@ -62,12 +62,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 _buildGameSoundToggle(context),
                 const Divider(color: Colors.white24),
                 // Master Volume
-                _buildGameVolumeSlider(context, 'Master', _gameAudio.volume, (v) {
+                _buildGameVolumeSlider(context, 'Master', _gameAudio.volume, (
+                  v,
+                ) {
                   setState(() => _gameAudio.setVolume(v));
                 }),
                 const Divider(color: Colors.white24),
                 // SFX Volume
-                _buildGameVolumeSlider(context, 'SFX', _gameAudio.sfxVolume, (v) {
+                _buildGameVolumeSlider(context, 'SFX', _gameAudio.sfxVolume, (
+                  v,
+                ) {
                   setState(() => _gameAudio.setSfxVolume(v));
                 }),
                 const Divider(color: Colors.white24),
@@ -76,7 +80,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             const SizedBox(height: 30),
-            
+
             _buildSectionTitle('📱 Uygulama'),
             const SizedBox(height: 16),
             _buildSettingsCard(
@@ -149,7 +153,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         style: const TextStyle(color: Colors.white54, fontSize: 12),
       ),
       value: settings.soundEnabled,
-      activeColor: Colors.greenAccent,
+      activeThumbColor: Colors.greenAccent,
       onChanged: (value) {
         notifier.setSoundEnabled(value);
         if (value) {
@@ -280,7 +284,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget _buildGameSoundToggle(BuildContext context) {
     return SwitchListTile(
       secondary: Icon(
-        _gameAudio.soundEnabled ? Icons.videogame_asset : Icons.videogame_asset_off,
+        _gameAudio.soundEnabled
+            ? Icons.videogame_asset
+            : Icons.videogame_asset_off,
         color: _gameAudio.soundEnabled ? Colors.cyanAccent : Colors.white54,
       ),
       title: const Text('Oyun Sesleri', style: TextStyle(color: Colors.white)),
@@ -289,7 +295,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         style: const TextStyle(color: Colors.white54, fontSize: 12),
       ),
       value: _gameAudio.soundEnabled,
-      activeColor: Colors.cyanAccent,
+      activeThumbColor: Colors.cyanAccent,
       onChanged: (value) {
         setState(() => _gameAudio.setSoundEnabled(value));
         if (value) {
@@ -354,32 +360,84 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _buildTestSoundButton('Kılıç', Icons.gavel, Colors.orange, 
-                () => _gameAudio.playSwordSwoosh()),
-              _buildTestSoundButton('Vuruş', Icons.flash_on, Colors.red, 
-                () => _gameAudio.playSwordHit()),
-              _buildTestSoundButton('Zıplama', Icons.arrow_upward, Colors.blue, 
-                () => _gameAudio.playJump()),
-              _buildTestSoundButton('Hasar', Icons.heart_broken, Colors.pink, 
-                () => _gameAudio.playPlayerHurt()),
-              _buildTestSoundButton('Ölüm', Icons.dangerous, Colors.grey, 
-                () => _gameAudio.playPlayerDeath()),
-              _buildTestSoundButton('Slime', Icons.water_drop, Colors.green, 
-                () => _gameAudio.playSlimeDeath()),
-              _buildTestSoundButton('Kalkan', Icons.shield, Colors.cyan, 
-                () => _gameAudio.playShieldBlock()),
-              _buildTestSoundButton('Güç', Icons.auto_awesome, Colors.yellow, 
-                () => _gameAudio.playPowerUp()),
-              _buildTestSoundButton('XP', Icons.star, Colors.amber, 
-                () => _gameAudio.playXpCollect()),
-              _buildTestSoundButton('Coin', Icons.monetization_on, Colors.yellow, 
-                () => _gameAudio.playCoinCollect()),
-              _buildTestSoundButton('Can', Icons.favorite, Colors.red, 
-                () => _gameAudio.playHeal()),
-              _buildTestSoundButton('Asansör', Icons.elevator, Colors.purple, 
-                () => _gameAudio.playElevatorDing()),
-              _buildTestSoundButton('Level', Icons.celebration, Colors.teal, 
-                () => _gameAudio.playLevelComplete()),
+              _buildTestSoundButton(
+                'Kılıç',
+                Icons.gavel,
+                Colors.orange,
+                () => _gameAudio.playSwordSwoosh(),
+              ),
+              _buildTestSoundButton(
+                'Vuruş',
+                Icons.flash_on,
+                Colors.red,
+                () => _gameAudio.playSwordHit(),
+              ),
+              _buildTestSoundButton(
+                'Zıplama',
+                Icons.arrow_upward,
+                Colors.blue,
+                () => _gameAudio.playJump(),
+              ),
+              _buildTestSoundButton(
+                'Hasar',
+                Icons.heart_broken,
+                Colors.pink,
+                () => _gameAudio.playPlayerHurt(),
+              ),
+              _buildTestSoundButton(
+                'Ölüm',
+                Icons.dangerous,
+                Colors.grey,
+                () => _gameAudio.playPlayerDeath(),
+              ),
+              _buildTestSoundButton(
+                'Slime',
+                Icons.water_drop,
+                Colors.green,
+                () => _gameAudio.playSlimeDeath(),
+              ),
+              _buildTestSoundButton(
+                'Kalkan',
+                Icons.shield,
+                Colors.cyan,
+                () => _gameAudio.playShieldBlock(),
+              ),
+              _buildTestSoundButton(
+                'Güç',
+                Icons.auto_awesome,
+                Colors.yellow,
+                () => _gameAudio.playPowerUp(),
+              ),
+              _buildTestSoundButton(
+                'XP',
+                Icons.star,
+                Colors.amber,
+                () => _gameAudio.playXpCollect(),
+              ),
+              _buildTestSoundButton(
+                'Coin',
+                Icons.monetization_on,
+                Colors.yellow,
+                () => _gameAudio.playCoinCollect(),
+              ),
+              _buildTestSoundButton(
+                'Can',
+                Icons.favorite,
+                Colors.red,
+                () => _gameAudio.playHeal(),
+              ),
+              _buildTestSoundButton(
+                'Asansör',
+                Icons.elevator,
+                Colors.purple,
+                () => _gameAudio.playElevatorDing(),
+              ),
+              _buildTestSoundButton(
+                'Level',
+                Icons.celebration,
+                Colors.teal,
+                () => _gameAudio.playLevelComplete(),
+              ),
             ],
           ),
         ],

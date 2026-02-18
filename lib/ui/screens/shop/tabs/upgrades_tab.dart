@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/core/data/mock_upgrades.dart';
-import 'package:pomodoro_knight/ui/screens/shop_page/widgets/upgrade_card.dart';
+import 'package:pomodoro_knight/ui/screens/shop/widgets/upgrade_card.dart';
 import 'package:pomodoro_knight/logic/upgrades/upgrades_provider.dart';
 import 'package:pomodoro_knight/logic/economy/economy_provider.dart';
 import 'package:pomodoro_knight/game/services/game_audio_service.dart';

@@ -12,7 +12,20 @@
           "package_name": "com.example.pomodoro_knight"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1014403393538-1na7uo0ai9g2kbnd1lqljjkbct7992o8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.pomodoro_knight",
+            "certificate_hash": "741cea70b93ae4fdbf8b04151a1c0e065f14c845"
+          }
+        },
+        {
+          "client_id": "1014403393538-bs322rn1jn38ir8gphpnte1su7hu0h35.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDv7LL2wq6MsIkcL_JqzmDBbU2T5zQpIx8"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1014403393538-bs322rn1jn38ir8gphpnte1su7hu0h35.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1014403393538-ivunv7uc3vr4u3jqup259fd2ndlh9rfs.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.pomodoroKnight"
+              }
+            }
+          ]
         }
       }
     }

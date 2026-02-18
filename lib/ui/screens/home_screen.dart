@@ -5,9 +5,10 @@ import 'package:pomodoro_knight/logic/navigation/navigation_provider.dart';
 import 'package:pomodoro_knight/logic/economy/economy_provider.dart';
 import 'package:pomodoro_knight/logic/upgrades/upgrades_provider.dart';
 import 'package:pomodoro_knight/logic/audio/audio_provider.dart';
+import 'package:pomodoro_knight/logic/auth/auth_provider.dart';
 import 'package:pomodoro_knight/ui/screens/pomodoro_screen.dart';
 import 'package:pomodoro_knight/ui/screens/game_screen.dart';
-import 'package:pomodoro_knight/ui/screens/shop_page/shop_screen.dart';
+import 'package:pomodoro_knight/ui/screens/shop/shop_screen.dart';
 import 'package:pomodoro_knight/ui/screens/inventory_screen.dart';
 import 'package:pomodoro_knight/ui/widgets/sound_button.dart';
 
@@ -174,6 +175,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   );
                 },
               ),
+              SoundListTile(
+                leading: const Icon(Icons.logout, color: Colors.orange),
+                title: const Text(
+                  'Sign Out',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  ref.read(authRepositoryProvider).signOut();
+                  Navigator.pop(context);
+                },
+              ),
               const SizedBox(height: 10),
             ],
           ),
@@ -280,7 +292,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   elevation: 8,
                   child: Icon(
                     Icons.videogame_asset,
-                    color: isGameSelected ? Colors.white : Colors.deepPurpleAccent,
+                    color: isGameSelected
+                        ? Colors.white
+                        : Colors.deepPurpleAccent,
                     size: 32,
                   ),
                 ),

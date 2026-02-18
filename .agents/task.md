@@ -10,8 +10,8 @@
 
 ## 🎯 MVP (Yayınlanabilir)
 
-- [ ] Adım 1 — Theme Sistemi
-- [ ] Adım 2 — Firebase Auth (Google + Apple)
+- [x] Adım 1 — Theme Sistemi
+- [x] Adım 2 — Firebase Auth (Google + E-posta/Şifre + Anonim)
 - [ ] Adım 3 — GoRouter + Auth Guard
 - [ ] Adım 4 — Firestore Modelleri
 - [ ] Adım 5 — Repository Katmanı

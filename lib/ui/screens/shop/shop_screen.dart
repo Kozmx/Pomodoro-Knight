@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pomodoro_knight/ui/screens/shop_page/tabs/shop_tab.dart';
-import 'package:pomodoro_knight/ui/screens/shop_page/tabs/upgrades_tab.dart';
+import 'package:pomodoro_knight/ui/screens/shop/tabs/shop_tab.dart';
+import 'package:pomodoro_knight/ui/screens/shop/tabs/upgrades_tab.dart';
 import 'package:pomodoro_knight/ui/widgets/gold_display.dart';
 
 class ShopScreen extends ConsumerWidget {

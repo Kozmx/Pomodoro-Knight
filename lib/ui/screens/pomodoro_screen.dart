@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/logic/pomodoro/pomodoro_provider.dart';
 import 'package:pomodoro_knight/ui/widgets/gold_display.dart';
+import 'package:pomodoro_knight/logic/auth/auth_provider.dart';
 
 class PomodoroScreen extends ConsumerWidget {
   const PomodoroScreen({super.key});
@@ -90,10 +91,7 @@ class PomodoroScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16.0),
-            child: GoldDisplay(),
-          ),
+          Padding(padding: EdgeInsets.only(right: 16.0), child: GoldDisplay()),
         ],
       ),
       drawer: Drawer(
@@ -167,6 +165,21 @@ class PomodoroScreen extends ConsumerWidget {
                   pomodoroState.shortBreakDuration,
                   (val) => notifier.setShortBreakDuration(val),
                 );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.orangeAccent),
+              title: const Text(
+                'Logout',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Minecraftia',
+                  fontSize: 13,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context); // Drawer'ı kapat
+                ref.read(authRepositoryProvider).signOut();
               },
             ),
           ],

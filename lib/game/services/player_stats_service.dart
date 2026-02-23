@@ -1,4 +1,4 @@
-import 'package:pomodoro_knight/core/models/shop_item.dart';
+import 'package:pomodoro_knight/features/shop/domain/shop_item.dart';
 
 /// Oyun içinden upgrade stat'larına erişmek için singleton servis
 /// Provider'lar Flame game içinde direkt kullanılamadığı için

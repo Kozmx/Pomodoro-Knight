@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/core/theme/app_theme.dart';
 import 'package:pomodoro_knight/firebase_options.dart';
-import 'package:pomodoro_knight/ui/screens/home_screen.dart';
-import 'package:pomodoro_knight/ui/screens/auth/login_screen.dart';
-import 'package:pomodoro_knight/logic/auth/auth_provider.dart';
+import 'package:pomodoro_knight/features/home/presentation/home_screen.dart';
+import 'package:pomodoro_knight/features/auth/presentation/login_screen.dart';
+import 'package:pomodoro_knight/features/auth/presentation/auth_provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';

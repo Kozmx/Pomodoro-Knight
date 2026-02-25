@@ -203,13 +203,18 @@ class PomodoroScreen extends ConsumerWidget {
                   _ModeButton(
                     label: 'Work',
                     isSelected: pomodoroState.mode == PomodoroMode.work,
-                    onTap: () => notifier.setMode(PomodoroMode.work),
+                    onTap: () {
+                      if (pomodoroState.mode == PomodoroMode.work) return;
+                      notifier.setMode(PomodoroMode.work);
+                    },
                   ),
                   const SizedBox(width: 10),
                   _ModeButton(
                     label: 'Break',
                     isSelected: pomodoroState.mode == PomodoroMode.shortBreak,
                     onTap: () {
+                      if (pomodoroState.mode == PomodoroMode.shortBreak) return;
+
                       if (pomodoroState.mode == PomodoroMode.work &&
                           pomodoroState.remainingSeconds > 0 &&
                           pomodoroState.remainingSeconds <

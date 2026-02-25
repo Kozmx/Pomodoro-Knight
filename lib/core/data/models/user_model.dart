@@ -62,30 +62,36 @@ class UserModel {
     SnapshotOptions? options,
   ) {
     final data = snapshot.data();
-    if (data == null) throw Exception("Veri bulunamadı!");
+    if (data == null) throw Exception("Document data was null");
+    return UserModel.fromMap(data, snapshot.id);
+  }
+
+  // Genel bir Map'ten modele çevirme (Hem converter hem manuel kullanım için)
+  factory UserModel.fromMap(Map<String, dynamic> data, String uid) {
     // Helper: Timestamp'i DateTime'a güvenli çevirme
     DateTime toDateTime(dynamic value) {
       if (value is Timestamp) return value.toDate();
-      return DateTime.now(); // Hata varsa şimdiki zamanı ver
+      return DateTime.now();
     }
 
     return UserModel(
-      uid: snapshot.id,
+      uid: uid,
       email: data['email'] ?? '',
       displayName: data['displayName'],
       photoUrl: data['photoUrl'],
       createdAt: toDateTime(data['createdAt']),
       lastActiveAt: toDateTime(data['lastActiveAt']),
-
-      // Alt sınıfların kendi fromMap metodlarını çağırıyoruz!
       wallet: UserWallet.fromMap(data['wallet'] ?? {}),
       stats: UserStats.fromMap(data['stats'] ?? {}),
       progress: UserProgress.fromMap(data['progress'] ?? {}),
       equipment: UserEquipment.fromMap(data['equipment'] ?? {}),
       settings: UserSettings.fromMap(data['settings'] ?? {}),
-
       ownedItems: List<String>.from(data['ownedItems'] ?? []),
-      upgradeLevels: Map<String, int>.from(data['upgradeLevels'] ?? {}),
+      upgradeLevels:
+          (data['upgradeLevels'] as Map?)?.map(
+            (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+          ) ??
+          {},
     );
   }
 
@@ -147,7 +153,7 @@ class UserWallet {
   UserWallet({this.gold = 1500});
   Map<String, dynamic> toMap() => {'gold': gold};
   factory UserWallet.fromMap(Map<String, dynamic> map) =>
-      UserWallet(gold: map['gold'] ?? 1500);
+      UserWallet(gold: (map['gold'] as num?)?.toInt() ?? 1500);
 
   UserWallet copyWith({int? gold}) => UserWallet(gold: gold ?? this.gold);
 }
@@ -161,8 +167,8 @@ class UserStats {
     'totalSessions': totalSessions,
   };
   factory UserStats.fromMap(Map<String, dynamic> map) => UserStats(
-    totalFocusMinutes: map['totalFocusMinutes'] ?? 0,
-    totalSessions: map['totalSessions'] ?? 0,
+    totalFocusMinutes: (map['totalFocusMinutes'] as num?)?.toInt() ?? 0,
+    totalSessions: (map['totalSessions'] as num?)?.toInt() ?? 0,
   );
 
   UserStats copyWith({int? totalFocusMinutes, int? totalSessions}) => UserStats(
@@ -180,8 +186,8 @@ class UserProgress {
     'maxFloorUnlocked': maxFloorUnlocked,
   };
   factory UserProgress.fromMap(Map<String, dynamic> map) => UserProgress(
-    currentFloor: map['currentFloor'] ?? 1,
-    maxFloorUnlocked: map['maxFloorUnlocked'] ?? 1,
+    currentFloor: (map['currentFloor'] as num?)?.toInt() ?? 1,
+    maxFloorUnlocked: (map['maxFloorUnlocked'] as num?)?.toInt() ?? 1,
   );
 
   UserProgress copyWith({int? currentFloor, int? maxFloorUnlocked}) =>
@@ -229,8 +235,8 @@ class UserSettings {
     'soundEnabled': soundEnabled,
   };
   factory UserSettings.fromMap(Map<String, dynamic> map) => UserSettings(
-    workDuration: map['workDuration'] ?? 25,
-    shortBreakDuration: map['shortBreakDuration'] ?? 5,
+    workDuration: (map['workDuration'] as num?)?.toInt() ?? 25,
+    shortBreakDuration: (map['shortBreakDuration'] as num?)?.toInt() ?? 5,
     soundEnabled: map['soundEnabled'] ?? true,
   );
 

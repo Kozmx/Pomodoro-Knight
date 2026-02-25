@@ -23,7 +23,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
   late final JoystickComponent joystick;
   late final GameBackground background;
   late final LevelManager levelManager;
-  
+
   // Ability butonları
   late final SkillButton skillButton;
   late final DashButton dashButton;
@@ -63,32 +63,25 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
       position: Vector2(0, 0), // Margin ile ayarlanacak
       radius: 30,
     );
-    
+
     // Dash butonu (saldırının solunda)
-    dashButton = DashButton(
-      position: Vector2(0, 0),
-      radius: 22,
-    );
-    
+    dashButton = DashButton(position: Vector2(0, 0), radius: 22);
+
     // Kalkan butonu (saldırının üstünde)
-    shieldButton = ShieldButton(
-      position: Vector2(0, 0),
-      radius: 22,
-    );
-    
+    shieldButton = ShieldButton(position: Vector2(0, 0), radius: 22);
+
     // Skill butonu (sol üst çaprazda - XP ile dolan)
-    skillButton = SkillButton(
-      position: Vector2(0, 0),
-      radius: 22,
-    );
-    
+    skillButton = SkillButton(position: Vector2(0, 0), radius: 22);
+
     // Butonları viewport'a ekle (pozisyonlar onMount'ta ayarlanacak)
-    camera.viewport.add(_AbilityButtonContainer(
-      attackButton: attackButton,
-      dashButton: dashButton,
-      shieldButton: shieldButton,
-      skillButton: skillButton,
-    ));
+    camera.viewport.add(
+      _AbilityButtonContainer(
+        attackButton: attackButton,
+        dashButton: dashButton,
+        shieldButton: shieldButton,
+        skillButton: skillButton,
+      ),
+    );
 
     // Health Bar
     camera.viewport.add(HealthBar());
@@ -114,7 +107,12 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
 
     // Kamera sınırlarını belirle (Arka plan dışına çıkmasın)
     camera.setBounds(
-      Rectangle.fromLTRB(0, 0, GameBackground.worldWidth, GameBackground.worldHeight),
+      Rectangle.fromLTRB(
+        0,
+        0,
+        GameBackground.worldWidth,
+        GameBackground.worldHeight,
+      ),
     );
 
     // TEST: Debug kontrolleri sadece klavye ile (K tuşu ile öldür)
@@ -143,7 +141,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
       _isGameOver = true;
       _gameOverTimer = 0;
     }
-    
+
     if (_isGameOver) {
       _gameOverTimer += dt;
       if (_gameOverTimer >= 2.0) {
@@ -155,12 +153,15 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
 
   // TEST: Klavye kontrolleri
   @override
-  KeyEventResult onKeyEvent(KeyEvent event, Set<LogicalKeyboardKey> keysPressed) {
+  KeyEventResult onKeyEvent(
+    KeyEvent event,
+    Set<LogicalKeyboardKey> keysPressed,
+  ) {
     if (!_testModeEnabled) return KeyEventResult.ignored;
-    
+
     _keysPressed.clear();
     _keysPressed.addAll(keysPressed);
-    
+
     // X tuşu ile kalkan (basılı tutunca açık)
     if (event.logicalKey == LogicalKeyboardKey.keyX) {
       if (event is KeyDownEvent) {
@@ -170,31 +171,33 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
       }
       return KeyEventResult.handled;
     }
-    
+
     // Space tuşu ile saldırı
     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.space) {
       player.attack();
       return KeyEventResult.handled;
     }
-    
+
     // K tuşu ile tüm düşmanları öldür
     if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyK) {
       _killAllEnemies();
       return KeyEventResult.handled;
     }
-    
+
     // 1 tuşu ile Player 1
-    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.digit1) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.digit1) {
       player.switchCharacter(1);
       return KeyEventResult.handled;
     }
-    
+
     // 2 tuşu ile Player 2
-    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.digit2) {
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.digit2) {
       player.switchCharacter(2);
       return KeyEventResult.handled;
     }
-    
+
     return KeyEventResult.handled;
   }
 
@@ -202,7 +205,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
   void _handleKeyboardMovement() {
     double dx = 0;
     double dy = 0;
-    
+
     if (_keysPressed.contains(LogicalKeyboardKey.arrowLeft)) {
       dx = -1;
     }
@@ -212,7 +215,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
     if (_keysPressed.contains(LogicalKeyboardKey.arrowUp)) {
       dy = -1; // Zıplama için
     }
-    
+
     // TEST: Player'ın test input'unu ayarla
     player.testInput = Vector2(dx, dy);
   }
@@ -222,7 +225,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
     print('TEST: Killing all enemies!');
     final enemies = world.children.whereType<Enemy>().toList();
     final flyingEnemies = world.children.whereType<FlyingEnemy>().toList();
-    
+
     for (final enemy in enemies) {
       enemy.removeFromParent();
       levelManager.onEnemyKilled();
@@ -243,7 +246,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
     // Reset game over state
     _isGameOver = false;
     _gameOverTimer = 0;
-    
+
     // Oyuncuyu yeniden canlandır
     player.respawn();
     player.position = Vector2(1000, 750);
@@ -263,7 +266,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
     overlays.remove('GameOver');
     resumeEngine();
   }
-  
+
   /// Düşman öldüğünde XP ekle (skill butonu için)
   void addXpToSkill(int amount) {
     // Her XP 0.10 progress ekler (10 XP = full = ~2 düşman)
@@ -273,60 +276,67 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
 }
 
 /// Ability butonlarını düzenleyen container
-class _AbilityButtonContainer extends PositionComponent with HasGameRef<FocusGame> {
+class _AbilityButtonContainer extends PositionComponent
+    with HasGameRef<FocusGame> {
   final AttackButton attackButton;
   final DashButton dashButton;
   final ShieldButton shieldButton;
   final SkillButton skillButton;
-  
+
   _AbilityButtonContainer({
     required this.attackButton,
     required this.dashButton,
     required this.shieldButton,
     required this.skillButton,
   });
-  
+
   @override
   Future<void> onLoad() async {
     // Viewport boyutlarını al
-    final viewportSize = gameRef.camera.viewport.size;
-    
+    var viewportSize = gameRef.camera.viewport.size;
+
+    // Eğer viewport henüz hazır değilse (0,0 ise), makul bir varsayılan kullan
+    // Bu, render krizlerini ve negatif pozisyonları engeller.
+    if (viewportSize.x <= 0 || viewportSize.y <= 0) {
+      viewportSize = Vector2(800, 400); // Standart bir fallback
+    }
+
     // Buton boyutları
     const double attackRadius = 30;
     const double abilityRadius = 22;
     const double margin = 30;
     const double spacing = 12;
-    
+
     // Ana saldırı butonu pozisyonu (sağ alt)
     final attackPos = Vector2(
       viewportSize.x - margin - attackRadius,
       viewportSize.y - margin - attackRadius,
     );
-    
+
     // Dash butonu (saldırının solunda)
     final dashPos = Vector2(
       attackPos.x - attackRadius - spacing - abilityRadius,
       attackPos.y + (attackRadius - abilityRadius),
     );
-    
+
     // Kalkan butonu (saldırının üstünde)
     final shieldPos = Vector2(
       attackPos.x,
       attackPos.y - attackRadius - spacing - abilityRadius,
     );
-    
+
     // Skill butonu (sol üst çaprazda)
     final skillPos = Vector2(
       attackPos.x - attackRadius - spacing - abilityRadius,
       attackPos.y - attackRadius - spacing - abilityRadius,
     );
-    
+
     // Pozisyonları ayarla
     attackButton.position = attackPos;
     dashButton.position = dashPos;
     shieldButton.position = shieldPos;
     skillButton.position = skillPos;
-    
+
     // Butonları ekle
     add(attackButton);
     add(dashButton);

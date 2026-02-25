@@ -1,14 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:pomodoro_knight/core/data/models/user_model.dart';
 
 class UserRepository {
   // Firestore kütüphanesine erişim izni
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // "users" koleksiyonuna hızlı erişim için bir referans oluşturuyoruz
-  // withConverter kullanarak Firestore'un veriyi otomatik olarak Modelleştirmesini sağlıyoruz
-
-  get _usersRef => _firestore
+  // "users" koleksiyonuna tip-güvenli erişim (sadece saveUser için kullanılıyor)
+  CollectionReference<UserModel> get _usersRef => _firestore
       .collection('users')
       .withConverter<UserModel>(
         fromFirestore: (snapshot, options) =>
@@ -23,16 +22,45 @@ class UserRepository {
     await _usersRef.doc(user.uid).set(user);
   }
 
-  // UID ile kullanıcı verisini tek seferlik çek (GEt)
+  // UID ile kullanıcı verisini tek seferlik çek (Get)
   Future<UserModel?> getUser(String uid) async {
-    final doc = await _usersRef.doc(uid).get();
-    return doc.data(); // doc.data() bize direkt UserModel? döner
+    // Converter kullanmadan ham veriyi çekiyoruz ki döküman yoksa null dönebilelim
+    final docSnapshot = await _firestore.collection('users').doc(uid).get();
+
+    if (!docSnapshot.exists || docSnapshot.data() == null) {
+      return null; // Döküman yoksa tertemiz null döner
+    }
+
+    // Veri varsa manuel olarak modele çevir
+    return UserModel.fromMap(docSnapshot.data()!, docSnapshot.id);
   }
 
   // Kullanıcıyı canlı dinle (Stream)
-  // Profil ekranı veya gold değişimi için sürekli güncel veri sağlar
+  // Converter KULLANMIYORUZ çünkü converter hata fırlatırsa tüm stream ölür.
+  // Bunun yerine ham veriyi alıp kendimiz çeviriyoruz.
   Stream<UserModel?> watchUser(String uid) {
-    return _usersRef.doc(uid).snapshots().map((snapshot) => snapshot.data());
+    return _firestore.collection('users').doc(uid).snapshots().map((snapshot) {
+      if (!snapshot.exists || snapshot.data() == null) {
+        debugPrint('👤 watchUser: Döküman yok veya boş (uid: $uid)');
+        return null;
+      }
+      try {
+        final user = UserModel.fromMap(snapshot.data()!, snapshot.id);
+        debugPrint('👤 watchUser: Veri geldi → gold=${user.wallet.gold}');
+        return user;
+      } catch (e, stack) {
+        debugPrint('👤 watchUser HATA: $e');
+        debugPrint('👤 Stack: $stack');
+        return null; // Hata olsa bile stream ölmez, null döner
+      }
+    });
+  }
+
+  // Altın miktarını artır (Güvenli yöntem)
+  Future<void> addGold(String uid, int amount) async {
+    await _firestore.collection('users').doc(uid).update({
+      'wallet.gold': FieldValue.increment(amount),
+    });
   }
 
   // Sadece altın güncelleme (harcama veya basit kazanma)
@@ -90,11 +118,14 @@ class UserRepository {
       // bakiyeyi düş ve eşyayı listeye ekle
       transaction.update(userDoc, {
         'wallet.gold': currentGold - price,
-        'ownedItems': FieldValue.arrayUnion([itemId]), //listeye tekrar eklemeyi önleyerek ekler
+        'ownedItems': FieldValue.arrayUnion([
+          itemId,
+        ]), //listeye tekrar eklemeyi önleyerek ekler
       });
       return true;
     });
   }
+
   // Stat Geliştirme
   // Gold düşer ve belirttiğimiz upgrade'in seviyesi 1 artar
   Future<bool> upgradeStat(String uid, int price, String upgradeId) async {
@@ -112,6 +143,7 @@ class UserRepository {
       return true;
     });
   }
+
   // Ayarları Güncelleme
   Future<void> updateSettings(String uid, UserSettings settings) async {
     await _firestore.collection('users').doc(uid).update({
@@ -119,8 +151,13 @@ class UserRepository {
     });
   }
 
-
-
-
-
+  // Debug: İstatistikleri ve altınları sıfırla
+  Future<void> resetStats(String uid) async {
+    await _firestore.collection('users').doc(uid).update({
+      'wallet.gold': 0,
+      'stats.totalFocusMinutes': 0,
+      'stats.totalSessions': 0,
+      'upgradeLevels': {}, // Tüm geliştirmeleri sıfırla
+    });
+  }
 }

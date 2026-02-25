@@ -11,11 +11,25 @@ import 'package:pomodoro_knight/features/shop/domain/shop_item.dart';
 
 import 'package:pomodoro_knight/game/components/start_menu.dart';
 
-class GameScreen extends ConsumerWidget {
+class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends ConsumerState<GameScreen> {
+  // Oyunu bir kez oluşturuyoruz ki rebuild'larda sıfırlanmasın
+  late final FocusGame _game;
+
+  @override
+  void initState() {
+    super.initState();
+    _game = FocusGame();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Upgrade stat'larını dinle ve oyun servisine aktar
     final upgradesState = ref.watch(upgradesProvider);
     PlayerStatsService().updateStats(
@@ -26,11 +40,11 @@ class GameScreen extends ConsumerWidget {
       coin: upgradesState.coinMultiplier,
       crit: upgradesState.criticalChance,
     );
-    
+
     // Equipped weapon'ı dinle ve oyun servisine aktar
     final inventory = ref.watch(inventoryProvider);
     final equippedWeaponId = inventory.equippedWeapon;
-    
+
     // Equipped weapon'ın stats'larını bul
     if (equippedWeaponId != null) {
       final weapon = mockWeapons.firstWhere(
@@ -60,7 +74,7 @@ class GameScreen extends ConsumerWidget {
 
     return Scaffold(
       body: GameWidget<FocusGame>(
-        game: FocusGame(),
+        game: _game,
         overlayBuilderMap: {
           'StartMenu': (BuildContext context, FocusGame game) {
             return StartMenu(

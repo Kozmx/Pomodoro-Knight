@@ -2,8 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/features/home/presentation/navigation_provider.dart';
-import 'package:pomodoro_knight/features/economy/presentation/economy_provider.dart';
-import 'package:pomodoro_knight/features/upgrades/presentation/upgrades_provider.dart';
+import 'package:pomodoro_knight/features/auth/presentation/user_provider.dart';
 import 'package:pomodoro_knight/features/audio/presentation/audio_provider.dart';
 import 'package:pomodoro_knight/features/auth/presentation/auth_provider.dart';
 import 'package:pomodoro_knight/features/pomodoro/presentation/pomodoro_screen.dart';
@@ -109,16 +108,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   'Add +1000 Gold',
                   style: TextStyle(color: Colors.white),
                 ),
-                onTap: () {
-                  ref.read(economyProvider.notifier).addGold(1000);
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('✅ +1000 Gold added!'),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                onTap: () async {
+                  final user = ref.read(authStateProvider).value;
+                  if (user != null) {
+                    await ref
+                        .read(userRepositoryProvider)
+                        .addGold(user.uid, 1000);
+                  }
+                  if (context.mounted) Navigator.pop(context);
                 },
               ),
               SoundListTile(
@@ -127,16 +124,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   'Add 500 Gold',
                   style: TextStyle(color: Colors.white),
                 ),
-                onTap: () {
-                  ref.read(economyProvider.notifier).addGold(500);
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('✅ 500 Gold added!'),
-                      backgroundColor: Colors.green,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                onTap: () async {
+                  final user = ref.read(authStateProvider).value;
+                  if (user != null) {
+                    await ref
+                        .read(userRepositoryProvider)
+                        .addGold(user.uid, 500);
+                  }
+                  if (context.mounted) Navigator.pop(context);
                 },
               ),
               SoundListTile(
@@ -145,34 +140,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   'Reset Gold to 0',
                   style: TextStyle(color: Colors.white),
                 ),
-                onTap: () {
-                  ref.read(economyProvider.notifier).resetGold();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('🔄 Gold reset to 0'),
-                      backgroundColor: Colors.orange,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
-              ),
-              SoundListTile(
-                leading: const Icon(Icons.refresh, color: Colors.purple),
-                title: const Text(
-                  'Reset All Upgrades',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  ref.read(upgradesProvider.notifier).resetAllUpgrades();
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('🔄 All upgrades reset to 0'),
-                      backgroundColor: Colors.purple,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
+                onTap: () async {
+                  final user = ref.read(authStateProvider).value;
+                  if (user != null) {
+                    await ref.read(userRepositoryProvider).resetStats(user.uid);
+                  }
+                  if (context.mounted) Navigator.pop(context);
                 },
               ),
               SoundListTile(

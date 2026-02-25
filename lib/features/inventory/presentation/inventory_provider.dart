@@ -1,113 +1,76 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pomodoro_knight/features/shop/domain/shop_item.dart';
-import 'package:pomodoro_knight/features/economy/presentation/economy_provider.dart';
 import 'package:pomodoro_knight/features/inventory/presentation/inventory_state.dart';
+import 'package:pomodoro_knight/features/auth/presentation/user_provider.dart';
+import 'package:pomodoro_knight/features/auth/presentation/auth_provider.dart';
 
+// Envanter ve kuşanma işlemlerini yöneten Notifier
 class InventoryNotifier extends Notifier<InventoryState> {
-  late Box _box;
-
   @override
   InventoryState build() {
-    _box = Hive.box('game_data');
+    // Firestore'dan gelen kullanıcı verisini canlı olarak izler
+    final userAsync = ref.watch(userProvider);
 
-    List<String> weapons =
-        (_box.get('owned_weapons', defaultValue: []) as List).cast<String>();
-    final List<String> armors =
-        (_box.get('owned_armors', defaultValue: []) as List).cast<String>();
-    String? equippedWeapon = _box.get('equipped_weapon') as String?;
-    final String? equippedArmor = _box.get('equipped_armor') as String?;
+    // Kullanıcı verisi değiştikçe envanter durumunu günceller
+    return userAsync.maybeWhen(
+      data: (user) {
+        if (user == null) return const InventoryState();
 
-    // Starter weapon'ı otomatik ekle (ilk kez)
-    if (!weapons.contains('weapon_starter')) {
-      weapons = List<String>.from(weapons)..add('weapon_starter');
-      _box.put('owned_weapons', weapons);
-    }
-    
-    // Hiç equip edilmemişse starter'ı equip et
-    if (equippedWeapon == null) {
-      equippedWeapon = 'weapon_starter';
-      _box.put('equipped_weapon', equippedWeapon);
-    }
-
-    return InventoryState(
-      ownedWeapons: weapons,
-      ownedArmors: armors,
-      equippedWeapon: equippedWeapon,
-      equippedArmor: equippedArmor,
+        return InventoryState(
+          // 'weapon_' ile başlayan ID'leri silah listesine ayırır
+          ownedWeapons: user.ownedItems
+              .where((id) => id.startsWith('weapon_'))
+              .toList(),
+          // 'armor_' ile başlayan ID'leri zırh listesine ayırır
+          ownedArmors: user.ownedItems
+              .where((id) => id.startsWith('armor_'))
+              .toList(),
+          equippedWeapon: user.equipment.equippedWeaponId,
+          equippedArmor: user.equipment.equippedArmorId,
+        );
+      },
+      orElse: () => const InventoryState(),
     );
   }
 
-  // Silah veya zırh satın al
-  bool purchaseItem(ShopItem item, int price) {
-    // Zaten sahip mi kontrol et
-    if (hasItem(item.id)) {
-      return false; // Zaten satın alınmış
-    }
+  // Eşya satın alma işlemini başlatır (Firestore Transaction kullanır)
+  Future<bool> purchaseItem(ShopItem item, int price) async {
+    final user = ref.read(authStateProvider).value;
+    if (user == null) return false;
 
-    // Yeterli gold var mı kontrol et ve harca
-    final success = ref.read(economyProvider.notifier).spendGold(price);
-    if (!success) {
-      return false; // Yetersiz bakiye
-    }
-
-    // Item'ı envantere ekle
-    if (item is WeaponItem) {
-      final newWeapons = List<String>.from(state.ownedWeapons)..add(item.id);
-      state = state.copyWith(ownedWeapons: newWeapons);
-      _box.put('owned_weapons', newWeapons);
-
-      // İlk silahsa otomatik kuşan
-      if (state.equippedWeapon == null) {
-        equipWeapon(item.id);
-      }
-    } else if (item is ArmorItem) {
-      final newArmors = List<String>.from(state.ownedArmors)..add(item.id);
-      state = state.copyWith(ownedArmors: newArmors);
-      _box.put('owned_armors', newArmors);
-
-      // İlk zırhsa otomatik kuşan
-      if (state.equippedArmor == null) {
-        equipArmor(item.id);
-      }
-    }
-
-    return true;
+    final repo = ref.read(userRepositoryProvider);
+    // Repository üzerinden güvenli satın alma işlemini tetikler
+    return await repo.purchaseItem(user.uid, price, item.id);
   }
 
-  // Item sahipliği kontrolü
+  // Silah kuşanma işlemini Firestore'da günceller
+  Future<void> equipWeapon(String weaponId) async {
+    final user = ref.read(authStateProvider).value;
+    if (user == null) return;
+
+    final repo = ref.read(userRepositoryProvider);
+    // Mevcut zırh bilgisini koruyarak sadece silahı günceller
+    await repo.updateEquipment(user.uid, weaponId, state.equippedArmor);
+  }
+
+  // Zırh kuşanma işlemini Firestore'da günceller
+  Future<void> equipArmor(String armorId) async {
+    final user = ref.read(authStateProvider).value;
+    if (user == null) return;
+
+    final repo = ref.read(userRepositoryProvider);
+    // Mevcut silah bilgisini koruyarak sadece zırhı günceller
+    await repo.updateEquipment(user.uid, state.equippedWeapon, armorId);
+  }
+
+  // Yardımcı metot: Belirli bir eşyaya sahip miyiz kontrolü
   bool hasItem(String itemId) {
     return state.ownedWeapons.contains(itemId) ||
         state.ownedArmors.contains(itemId);
   }
-
-  // Silah kuşan
-  void equipWeapon(String weaponId) {
-    if (!state.ownedWeapons.contains(weaponId)) return;
-
-    state = state.copyWith(equippedWeapon: weaponId);
-    _box.put('equipped_weapon', weaponId);
-  }
-
-  // Zırh kuşan
-  void equipArmor(String armorId) {
-    if (!state.ownedArmors.contains(armorId)) return;
-
-    state = state.copyWith(equippedArmor: armorId);
-    _box.put('equipped_armor', armorId);
-  }
-
-  // Test için sıfırla
-  void reset() {
-    state = const InventoryState();
-    _box.delete('owned_weapons');
-    _box.delete('owned_armors');
-    _box.delete('equipped_weapon');
-    _box.delete('equipped_armor');
-  }
 }
 
-// Provider
+// Uygulama genelinde kullanılacak envanter provider'ı
 final inventoryProvider = NotifierProvider<InventoryNotifier, InventoryState>(
   InventoryNotifier.new,
 );

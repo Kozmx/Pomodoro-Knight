@@ -205,7 +205,7 @@ class Enemy extends SpriteAnimationGroupComponent<SlimeState>
       current = SlimeState.death;
       gameRef.levelManager.onEnemyKilled();
       GameAudioService().playSlimeDeath(); // Slime ölüm sesi
-      
+
       // XP efekti spawn et (artırılmış - her katta skill açılabilsin)
       spawnXpEffect(
         gameRef: gameRef,
@@ -247,7 +247,8 @@ class Enemy extends SpriteAnimationGroupComponent<SlimeState>
     );
 
     // Health (Green)
-    final healthPercent = (currentHealth / maxHealth).clamp(0.0, 1.0);
+    final healthPercent = (maxHealth > 0 ? (currentHealth / maxHealth) : 0.0)
+        .clamp(0.0, 1.0);
     canvas.drawRect(
       Rect.fromLTWH(barX, barY, barWidth * healthPercent, barHeight),
       Paint()..color = const Color(0xFF00FF00),

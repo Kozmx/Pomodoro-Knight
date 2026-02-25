@@ -1,19 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pomodoro_knight/features/economy/presentation/economy_provider.dart';
+import 'package:pomodoro_knight/features/auth/presentation/user_provider.dart';
 import 'package:intl/intl.dart';
 
 class GoldDisplay extends ConsumerWidget {
   final bool showIcon;
   final double fontSize;
-
   const GoldDisplay({super.key, this.showIcon = true, this.fontSize = 16});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final gold = ref.watch(economyProvider).gold;
+    // userProvider'ın ham durumunu izle (loading/data/error hangisinde?)
+    final userAsync = ref.watch(userProvider);
     final formatter = NumberFormat('#,###', 'en_US');
 
+    // DEBUG: Konsolda userProvider durumunu göster
+    debugPrint('🪙 GoldDisplay → userProvider state: $userAsync');
+
+    return userAsync.when(
+      loading: () {
+        debugPrint('🪙 GoldDisplay → LOADING...');
+        return _buildContainer(formatter.format(0), showIcon);
+      },
+      error: (err, stack) {
+        debugPrint('🪙 GoldDisplay → ERROR: $err');
+        debugPrint('🪙 GoldDisplay → STACK: $stack');
+        return _buildContainer('ERR', showIcon);
+      },
+      data: (user) {
+        final gold = user?.wallet.gold ?? 0;
+        debugPrint('🪙 GoldDisplay → DATA: gold=$gold, user=${user?.uid}');
+        return _buildContainer(formatter.format(gold), showIcon);
+      },
+    );
+  }
+
+  Widget _buildContainer(String text, bool showIcon) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -33,7 +55,7 @@ class GoldDisplay extends ConsumerWidget {
             const SizedBox(width: 6),
           ],
           Text(
-            formatter.format(gold),
+            text,
             style: TextStyle(
               color: const Color(0xFFFFD700),
               fontSize: fontSize,

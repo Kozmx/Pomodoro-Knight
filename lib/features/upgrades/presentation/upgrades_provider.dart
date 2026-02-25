@@ -1,63 +1,46 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:pomodoro_knight/features/upgrades/presentation/upgrades_state.dart';
+import 'package:pomodoro_knight/features/auth/presentation/user_provider.dart';
+import 'package:pomodoro_knight/features/auth/presentation/auth_provider.dart';
 
+// Geliştirme (Upgrade) seviyelerini yöneten Notifier
 class UpgradesNotifier extends Notifier<UpgradesState> {
-  late Box _box;
-
   @override
   UpgradesState build() {
-    _box = Hive.box('game_data');
+    // Firestore'dan gelen kullanıcı verisini canlı olarak izler
+    final userAsync = ref.watch(userProvider);
 
-    // Hive'dan upgrade level'ları yükle
-    final dynamic savedData = _box.get('upgrade_levels', defaultValue: {});
-    
-    final Map<String, int> levels = {};
-    if (savedData is Map) {
-      savedData.forEach((key, value) {
-        if (key is String && value is int) {
-          levels[key] = value;
-        }
-      });
-    }
-
-    return UpgradesState(levels: levels);
+    // Veri geldiğinde geliştirme seviyelerini otomatik günceller
+    return userAsync.maybeWhen(
+      data: (user) {
+        if (user == null) return const UpgradesState(levels: {});
+        return UpgradesState(levels: user.upgradeLevels);
+      },
+      orElse: () => const UpgradesState(levels: {}),
+    );
   }
 
-  // Upgrade level'ı al
+  // Belirli bir geliştirmenin seviyesini döndürür
   int getLevel(String upgradeId) {
     return state.levels[upgradeId] ?? 0;
   }
 
-  // Upgrade yap
-  void upgradeItem(String upgradeId) {
-    final currentLevel = getLevel(upgradeId);
-    final newLevels = Map<String, int>.from(state.levels);
-    newLevels[upgradeId] = currentLevel + 1;
+  // Geliştirme yapma işlemini başlatır (Firestore Transaction kullanır)
+  Future<bool> upgradeItem(String upgradeId, int price) async {
+    final user = ref.read(authStateProvider).value;
+    if (user == null) return false;
 
-    state = state.copyWith(levels: newLevels);
-    _saveToHive();
-  }
-
-  // Hive'a kaydet
-  void _saveToHive() {
-    _box.put('upgrade_levels', state.levels);
+    final repo = ref.read(userRepositoryProvider);
+    // Firestore'da altın düşüp seviyeyi artıran güvenli işlemi tetikler
+    return await repo.upgradeStat(user.uid, price, upgradeId);
   }
 
-  // Test için sıfırla
-  void resetUpgrades() {
-    state = const UpgradesState(levels: {});
-    _saveToHive();
-  }
-  
-  // Tüm upgrade'leri sıfırla
-  void resetAllUpgrades() {
-    state = const UpgradesState(levels: {});
-    _saveToHive();
-  }
+  // Boş metodlar (Firestore yapısında resetleme işlemi repository üzerinden yapılmalı)
+  void resetUpgrades() {}
+  void resetAllUpgrades() {}
 }
 
-// Provider
+// Uygulama genelinde kullanılacak geliştirmeler provider'ı
 final upgradesProvider = NotifierProvider<UpgradesNotifier, UpgradesState>(
   UpgradesNotifier.new,
 );

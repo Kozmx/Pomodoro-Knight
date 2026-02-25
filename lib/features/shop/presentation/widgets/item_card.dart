@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/features/shop/domain/shop_item.dart';
 import 'package:pomodoro_knight/features/inventory/presentation/inventory_provider.dart';
-import 'package:pomodoro_knight/features/economy/presentation/economy_provider.dart';
+import 'package:pomodoro_knight/features/auth/presentation/user_provider.dart';
 import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 class ItemCard extends ConsumerWidget {
@@ -16,12 +16,12 @@ class ItemCard extends ConsumerWidget {
     final isOwned =
         inventory.ownedWeapons.contains(item.id) ||
         inventory.ownedArmors.contains(item.id);
-    final canAfford = ref.watch(
-      economyProvider.select((state) => state.gold >= item.price),
-    );
-    
+    final gold = ref.watch(userGoldProvider);
+    final canAfford = gold >= item.price;
+
     // Equipped kontrolü
-    final isEquipped = (item is WeaponItem && inventory.equippedWeapon == item.id) ||
+    final isEquipped =
+        (item is WeaponItem && inventory.equippedWeapon == item.id) ||
         (item is ArmorItem && inventory.equippedArmor == item.id);
 
     return GestureDetector(
@@ -36,8 +36,8 @@ class ItemCard extends ConsumerWidget {
             color: isEquipped
                 ? Colors.amber
                 : isOwned
-                    ? Colors.green.withOpacity(0.5)
-                    : item.color.withOpacity(0.5),
+                ? Colors.green.withOpacity(0.5)
+                : item.color.withOpacity(0.5),
             width: isEquipped ? 3 : 2,
           ),
         ),
@@ -333,14 +333,14 @@ void _showItemDetails(
             // Buy Button
             ElevatedButton(
               onPressed: canAfford
-                  ? () {
-                      final success = ref
+                  ? () async {
+                      final success = await ref
                           .read(inventoryProvider.notifier)
                           .purchaseItem(item, item.price);
                       if (success) {
                         // Satın alma sesi çal
                         GameAudioService().playPurchase();
-                        
+
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -444,15 +444,35 @@ void _showItemInfo(BuildContext context, ShopItem item) {
           ),
           const Divider(color: Colors.white24),
           if (item is WeaponItem) ...[
-            _infoRow(Icons.flash_on, 'Base Damage', '${item.damage}', Colors.red),
-            _infoRow(Icons.speed, 'Attack Speed', '${item.attackSpeed}x', Colors.orange),
+            _infoRow(
+              Icons.flash_on,
+              'Base Damage',
+              '${item.damage}',
+              Colors.red,
+            ),
+            _infoRow(
+              Icons.speed,
+              'Attack Speed',
+              '${item.attackSpeed}x',
+              Colors.orange,
+            ),
             if (item.critBonus > 0)
-              _infoRow(Icons.auto_awesome, 'Crit Chance', '+${(item.critBonus * 100).toInt()}%', Colors.yellow),
+              _infoRow(
+                Icons.auto_awesome,
+                'Crit Chance',
+                '+${(item.critBonus * 100).toInt()}%',
+                Colors.yellow,
+              ),
             if (item.specialEffect != 'None')
               _infoRow(Icons.star, 'Effect', item.specialEffect, Colors.purple),
           ] else if (item is ArmorItem) ...[
             _infoRow(Icons.shield, 'Defense', '+${item.defense}', Colors.blue),
-            _infoRow(Icons.favorite, 'Max Health', '+${item.health}', Colors.pink),
+            _infoRow(
+              Icons.favorite,
+              'Max Health',
+              '+${item.health}',
+              Colors.pink,
+            ),
           ],
         ],
       ),
@@ -473,12 +493,19 @@ Widget _infoRow(IconData icon, String label, String value, Color color) {
       children: [
         Icon(icon, color: color, size: 18),
         const SizedBox(width: 8),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white70, fontSize: 13),
+        ),
         const Spacer(),
         Flexible(
           child: Text(
             value,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
             textAlign: TextAlign.right,
           ),
         ),
@@ -487,13 +514,18 @@ Widget _infoRow(IconData icon, String label, String value, Color color) {
   );
 }
 
-void _equipItem(BuildContext context, WidgetRef ref, ShopItem item, bool isAlreadyEquipped) {
+void _equipItem(
+  BuildContext context,
+  WidgetRef ref,
+  ShopItem item,
+  bool isAlreadyEquipped,
+) {
   if (isAlreadyEquipped) {
     // Zaten equipped - info göster
     _showItemInfo(context, item);
     return;
   }
-  
+
   // Equip et
   if (item is WeaponItem) {
     ref.read(inventoryProvider.notifier).equipWeapon(item.id);

@@ -60,6 +60,7 @@ class GameAudioService {
 
   // Birden fazla player - overlapping sesler için
   final List<AudioPlayer> _players = [];
+  AudioPlayer? _bgmPlayer;
   int _currentPlayerIndex = 0;
   static const int _maxPlayers = 6;
 
@@ -110,6 +111,11 @@ class GameAudioService {
       await player.setPlayerMode(PlayerMode.lowLatency);
       _players.add(player);
     }
+    
+    // BGM Player
+    _bgmPlayer = AudioPlayer();
+    await _bgmPlayer!.setReleaseMode(ReleaseMode.loop);
+    _updateBgmVolume();
   }
 
   /// Sesi aç/kapat
@@ -121,6 +127,7 @@ class GameAudioService {
   /// Genel ses seviyesini ayarla
   void setVolume(double vol) {
     _volume = vol.clamp(0.0, 1.0);
+    _updateBgmVolume();
     _saveSettings();
   }
 
@@ -133,7 +140,15 @@ class GameAudioService {
   /// Müzik ses seviyesini ayarla
   void setMusicVolume(double vol) {
     _musicVolume = vol.clamp(0.0, 1.0);
+    _updateBgmVolume();
     _saveSettings();
+  }
+  
+  void _updateBgmVolume() {
+    if (_bgmPlayer != null) {
+      final finalVolume = _soundEnabled ? (_volume * _musicVolume) : 0.0;
+      _bgmPlayer!.setVolume(finalVolume.clamp(0.0, 1.0));
+    }
   }
   
   /// Ayarları kaydet
@@ -147,6 +162,23 @@ class GameAudioService {
     } catch (e) {
       debugPrint('Ses ayarları kaydedilemedi: $e');
     }
+  }
+
+  // ==================== BGM ====================
+  
+  Future<void> playBackgroundMusic() async {
+    if (_bgmPlayer == null) return;
+    try {
+      // Loop the specified mp3
+      await _bgmPlayer!.play(AssetSource('sfx/music/audio-6.mp3'));
+      _updateBgmVolume();
+    } catch (e) {
+      debugPrint('BGM çalma hatası: $e');
+    }
+  }
+  
+  Future<void> stopBackgroundMusic() async {
+    await _bgmPlayer?.stop();
   }
 
   /// Sonraki player'ı al (round-robin)
@@ -313,5 +345,6 @@ class GameAudioService {
       player.dispose();
     }
     _players.clear();
+    _bgmPlayer?.dispose();
   }
 }

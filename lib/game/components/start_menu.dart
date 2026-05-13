@@ -50,13 +50,17 @@ class _StartMenuState extends State<StartMenu> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'POMODORO KNIGHT',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Pixelmania',
+            const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                'POMODORO KNIGHT',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Pixelmania',
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
             const SizedBox(height: 20),

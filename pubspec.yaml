@@ -26,6 +26,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  image: ^4.8.0
 
 flutter:
   uses-material-design: true
@@ -38,6 +39,9 @@ flutter:
     - assets/sfx/UI/
     - assets/sfx/game sfx/
     - assets/logos/
+    - assets/skeletonboss/
+    - assets/sfx/music/
+    - assets/Coin.png
 
   fonts:
     - family: Pixelmania

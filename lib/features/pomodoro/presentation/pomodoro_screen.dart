@@ -4,6 +4,7 @@ import 'package:pomodoro_knight/features/pomodoro/presentation/pomodoro_provider
 import 'package:pomodoro_knight/core/widgets/gold_display.dart';
 import 'package:pomodoro_knight/features/auth/presentation/auth_provider.dart';
 
+
 class PomodoroScreen extends ConsumerWidget {
   const PomodoroScreen({super.key});
 
@@ -44,7 +45,7 @@ class PomodoroScreen extends ConsumerWidget {
                     style: const TextStyle(color: Colors.white70),
                   ),
                   selected: minute == selectedValue,
-                  selectedTileColor: Colors.deepPurple.withOpacity(0.3),
+                  selectedTileColor: Colors.deepPurple.withValues(alpha: 0.3),
                   onTap: () {
                     onSaved(minute);
                     Navigator.pop(context);
@@ -65,27 +66,30 @@ class PomodoroScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'POMODORO',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Pixelmania',
-                fontSize: 18,
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'POMODORO',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Pixelmania',
+                  fontSize: 18,
+                ),
               ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              'KNIGHT',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Pixelmania',
-                fontSize: 14,
+              SizedBox(height: 6),
+              Text(
+                'KNIGHT',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'Pixelmania',
+                  fontSize: 14,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         centerTitle: true,
         backgroundColor: Colors.transparent,
@@ -185,8 +189,10 @@ class PomodoroScreen extends ConsumerWidget {
           ],
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
+      body: Stack(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage('assets/background/pomodoro_background.png'),
             fit: BoxFit.cover,
@@ -244,7 +250,7 @@ class PomodoroScreen extends ConsumerWidget {
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.greenAccent, width: 4),
                   borderRadius: BorderRadius.zero,
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -265,7 +271,7 @@ class PomodoroScreen extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 16,
                         letterSpacing: 4,
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -378,6 +384,145 @@ class PomodoroScreen extends ConsumerWidget {
             ],
           ),
         ),
+        ),
+        // Coin Animation Overlay
+        const CoinAnimationOverlay(),
+        ],
+      ),
+    );
+  }
+}
+
+class CoinAnimationOverlay extends ConsumerStatefulWidget {
+  const CoinAnimationOverlay({super.key});
+
+  @override
+  ConsumerState<CoinAnimationOverlay> createState() => _CoinAnimationOverlayState();
+}
+
+class _CoinAnimationOverlayState extends ConsumerState<CoinAnimationOverlay> {
+  int _lastGold = 0;
+  final List<_CoinPopupItem> _popups = [];
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(pomodoroProvider);
+    
+    // Altın arttıysa yeni bir popup oluştur
+    if (state.earnedGold > _lastGold) {
+      _lastGold = state.earnedGold;
+      
+      // Aynı anda birden fazla gelebilir (eğer multiplier yüksekse)
+      // Ama biz sadece 1 tane altın efekti gösterelim, karışıklık olmasın
+      final popup = _CoinPopupItem(id: DateTime.now().millisecondsSinceEpoch);
+      
+      // Build anında state değiştiremeyeceğimiz için frame sonrasına bırakıyoruz
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            _popups.add(popup);
+          });
+          
+          // 2 saniye sonra ekrandan sil
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              setState(() {
+                _popups.remove(popup);
+              });
+            }
+          });
+        }
+      });
+    } else if (state.earnedGold < _lastGold) {
+      // Eğer resetlenmişse (örn. timer bitince sıfırlanır) lastGold'u güncelle
+      // Build sırasında state güncellemeye gerek yok, sadece değişkende tutuyoruz
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _lastGold = state.earnedGold;
+      });
+    }
+
+    return Stack(
+      children: _popups.map((p) => _AnimatedCoinWidget(key: ValueKey(p.id))).toList(),
+    );
+  }
+}
+
+class _CoinPopupItem {
+  final int id;
+  _CoinPopupItem({required this.id});
+}
+
+class _AnimatedCoinWidget extends StatefulWidget {
+  const _AnimatedCoinWidget({super.key});
+
+  @override
+  State<_AnimatedCoinWidget> createState() => _AnimatedCoinWidgetState();
+}
+
+class _AnimatedCoinWidgetState extends State<_AnimatedCoinWidget> with TickerProviderStateMixin {
+  late AnimationController _moveController;
+  late Animation<double> _moveAnimation;
+  late AnimationController _spriteController;
+
+  @override
+  void initState() {
+    super.initState();
+    _moveController = AnimationController(
+      vsync: this, 
+      duration: const Duration(seconds: 2)
+    )..forward();
+    
+    _moveAnimation = Tween<double>(begin: 0, end: -150).animate(
+      CurvedAnimation(parent: _moveController, curve: Curves.easeOut)
+    );
+    
+    _spriteController = AnimationController(
+      vsync: this, 
+      duration: const Duration(milliseconds: 600)
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _moveController.dispose();
+    _spriteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _moveController,
+      builder: (context, child) {
+        return Positioned(
+          // Ekranın tam ortasında Timer'ın oradan çıksın
+          bottom: MediaQuery.of(context).size.height / 2 + _moveAnimation.value - 50,
+          left: MediaQuery.of(context).size.width / 2 - 32,
+          child: Opacity(
+            opacity: 1.0 - _moveController.value, // Yükseldikçe silin
+            child: child,
+          ),
+        );
+      },
+      child: AnimatedBuilder(
+        animation: _spriteController,
+        builder: (context, child) {
+          // 8 frame (0'dan 7'ye kadar)
+          final frame = (_spriteController.value * 8).floor() % 8;
+          return Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: const AssetImage('assets/Coin.png'),
+                fit: BoxFit.none,
+                // Offset fraction = 0 ile 1 arası
+                alignment: FractionalOffset(frame / 7.0, 0),
+                scale: 128 / 64, // orjinal 128px yükseklik, biz 64px kutuda gösteriyoruz
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -402,12 +547,12 @@ class _ModeButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? Colors.white.withOpacity(0.1)
+              ? Colors.white.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.zero,
           border: Border.all(
             color: isSelected
-                ? Colors.white.withOpacity(0.5)
+                ? Colors.white.withValues(alpha: 0.5)
                 : Colors.transparent,
           ),
         ),

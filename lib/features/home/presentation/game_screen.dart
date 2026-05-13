@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/game/focus_game.dart';
 import 'package:pomodoro_knight/game/services/player_stats_service.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 import 'package:pomodoro_knight/features/home/presentation/navigation_provider.dart';
 import 'package:pomodoro_knight/features/upgrades/presentation/upgrades_provider.dart';
 import 'package:pomodoro_knight/features/inventory/presentation/inventory_provider.dart';
@@ -26,6 +27,13 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   void initState() {
     super.initState();
     _game = FocusGame();
+  }
+
+  @override
+  void dispose() {
+    // Ekrandan çıkınca müziği kapat
+    GameAudioService().stopBackgroundMusic();
+    super.dispose();
   }
 
   @override

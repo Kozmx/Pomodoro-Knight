@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pomodoro_knight/features/upgrades/presentation/upgrades_provider.dart';
 import 'package:pomodoro_knight/features/auth/presentation/user_provider.dart';
 import 'package:pomodoro_knight/features/auth/presentation/auth_provider.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 // Pomodoro çalışma ve mola durumları
 enum PomodoroStatus { idle, running, paused }
@@ -89,6 +90,9 @@ class PomodoroNotifier extends Notifier<PomodoroState> {
           if ((state.initialSeconds - state.remainingSeconds) % 6 == 0) {
             final goldToAdd = (1 * coinMultiplier).round();
             state = state.copyWith(earnedGold: state.earnedGold + goldToAdd);
+            
+            // Altın kazanma sesini çal
+            GameAudioService().playCoinCollect();
           }
         }
       } else {

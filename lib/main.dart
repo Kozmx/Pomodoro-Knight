@@ -11,6 +11,7 @@ import 'package:pomodoro_knight/features/auth/presentation/auth_provider.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +20,13 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Google sign-in'i başlat
   await GoogleSignIn.instance.initialize();
-  // Hive'ı başlat
   await Hive.initFlutter();
   await Hive.openBox('game_data');
+  
+  // Ses servisini başlat (müziği burada çalma, oyuna girince çalacak)
+  final audioService = GameAudioService();
+  await audioService.initialize();
+
   runApp(const ProviderScope(child: MainApp()));
 }
 

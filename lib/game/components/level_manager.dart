@@ -136,9 +136,9 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
   }
 
   void _spawnPlayerOnPlatform() {
-    // Oyuncuyu platform üzerinde spawn et (sağ tarafta)
-    final spawnX = GameBackground.worldWidth - 150;
-    final spawnY = platformY - gameRef.player.size.y / 2 - 10;
+    // Oyuncuyu sol tarafta yerde spawn et
+    final spawnX = 200.0;
+    final spawnY = 800.0 - gameRef.player.size.y / 2 - 10;
     gameRef.player.position = Vector2(spawnX, spawnY);
     gameRef.player.velocity = Vector2.zero();
     gameRef.player.canMove = true;
@@ -156,24 +156,7 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     // Platform pozisyonlarını temizle
     _platformPositions.clear();
     
-    // ===== ANA RAMPA VE PLATFORM (sağ taraf - asansör için) =====
-    // Rampa: yerden platforma çıkış
-    final ramp = Ramp(
-      startPos: Vector2(rampStartX, 800),
-      endPos: Vector2(rampStartX + 300, platformY),
-    );
-    gameRef.world.add(ramp);
-    
-    // Platform: rampa ucundan mapin sağ sonuna kadar
-    final platformStartX = rampStartX + 300;
-    final platformWidth = GameBackground.worldWidth - platformStartX - 20;
-    final platform = Platform(
-      pos: Vector2(platformStartX, platformY),
-      width: platformWidth,
-    );
-    gameRef.world.add(platform);
-    
-    // ===== RASTGELE PLATFORMLAR (savaş alanında - sol taraf) =====
+    // ===== RASTGELE PLATFORMLAR (savaş alanında) =====
     _spawnRandomPlatforms();
     
     // Asansör BAŞLANGIÇTA YOK - düşmanlar ölünce spawn olacak
@@ -192,7 +175,7 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     
     // Platform spawn alanı
     final minX = 100.0;
-    final maxX = rampStartX - 200; // Rampa öncesi
+    final maxX = GameBackground.worldWidth - 200;
     
     // Y pozisyonları - yerden (800) yukarı doğru
     final groundY = 800.0;
@@ -295,9 +278,8 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     final double enemyHealth = 30.0 + (currentLevel - 1) * 10.0;
     final double enemyDamage = 10.0 + (currentLevel - 1) * 2.0;
 
-    // Düşmanların spawn olabileceği alan (rampa/platform bölgesi HARİÇ)
-    // Rampa x=1200'de başlıyor, onun solunda spawn olsunlar
-    final double maxSpawnX = rampStartX - 100; // Rampa öncesine kadar
+    // Düşmanların spawn olabileceği alan
+    final double maxSpawnX = GameBackground.worldWidth - 100;
 
     // Spawn Ground Enemies
     for (int i = 0; i < ground; i++) {
@@ -373,9 +355,10 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
     // Asansörü spawn et (sadece bir kere)
     if (!_elevatorSpawned) {
       _elevatorSpawned = true;
-      final elevatorX = GameBackground.worldWidth - 80;
+      final elevatorX = 1000.0; // Map'in ortası
+      final elevatorY = 800.0; // Yerde
       final elevator = Elevator()
-        ..position = Vector2(elevatorX, platformY);
+        ..position = Vector2(elevatorX, elevatorY);
       gameRef.world.add(elevator);
       print("LevelManager: Elevator spawned!");
       
@@ -384,7 +367,7 @@ class LevelManager extends Component with HasGameRef<FocusGame> {
       
       // Asansör hazır bildirimi göster
       _elevatorIndicator = ElevatorReadyIndicator(
-        position: Vector2(elevatorX, platformY - 80),
+        position: Vector2(elevatorX, elevatorY - 80),
       );
       gameRef.world.add(_elevatorIndicator!);
     }

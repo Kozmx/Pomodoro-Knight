@@ -12,6 +12,7 @@ import 'package:pomodoro_knight/game/enemy/slime/bat.dart';
 import 'package:pomodoro_knight/game/enemy/flower/flower.dart';
 import 'package:pomodoro_knight/game/components/health_bar.dart';
 import 'package:pomodoro_knight/game/components/level_manager.dart';
+import 'package:pomodoro_knight/game/services/game_audio_service.dart';
 
 // ===================== TEST MODU =====================
 // Bu bölümü silmek için "TEST:" araması yap ve kaldır
@@ -240,6 +241,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
     overlays.remove('StartMenu');
     resumeEngine();
     levelManager.startLevel();
+    GameAudioService().playBackgroundMusic(); // Oyuna başlayınca müziği çal
   }
 
   void resetGame() {
@@ -251,7 +253,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
     player.respawn();
     player.position = Vector2(1000, 750);
 
-    // Remove existing enemies (yapılar startLevel içinde temizleniyor)
+    // Remove existing enemies
     world.children.whereType<Enemy>().forEach((e) => e.removeFromParent());
     world.children.whereType<FlyingEnemy>().forEach(
       (e) => e.removeFromParent(),
@@ -262,6 +264,7 @@ class FocusGame extends FlameGame with HasCollisionDetection, KeyboardEvents {
 
     // Restart current level
     levelManager.startLevel();
+    GameAudioService().playBackgroundMusic(); // Müziği tekrar başlat
 
     overlays.remove('GameOver');
     resumeEngine();

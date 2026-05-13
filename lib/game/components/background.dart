@@ -9,8 +9,7 @@ class GameBackground extends SpriteComponent with HasGameRef {
 
   @override
   Future<void> onLoad() async {
-    // gameRef.images kullanarak Flame'in cache sistemini kullan
-    sprite = Sprite(await gameRef.images.load('background/background_test.jpg'));
+    sprite = Sprite(await gameRef.images.load('background/background.PNG'));
     
     // Resmi dünya boyutlarına stretch et (dikey olsa bile yatay görünecek)
     size = Vector2(worldWidth, worldHeight);

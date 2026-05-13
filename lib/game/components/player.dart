@@ -25,6 +25,9 @@ enum PlayerState {
   attack2,
   walkAttack1,
   walkAttack2,
+  bowAttack,
+  walkBowAttack,
+  bowWalk,
   hurt,
   death,
 }
@@ -129,10 +132,113 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
         srcSize: Vector2(170.67, 153.17), // 1024/6 x 919/6
       );
 
+      final walkImg = await images.load('player2/Walk.PNG');
+      final walkAnimation = SpriteAnimation.fromFrameData(
+        walkImg,
+        SpriteAnimationData([
+          SpriteAnimationFrameData(
+            stepTime: 0.1,
+            srcPosition: Vector2(21, 0),
+            srcSize: Vector2(144, 144),
+          ),
+          SpriteAnimationFrameData(
+            stepTime: 0.1,
+            srcPosition: Vector2(1199, 0),
+            srcSize: Vector2(144, 144),
+          ),
+          SpriteAnimationFrameData(
+            stepTime: 0.1,
+            srcPosition: Vector2(2368, 0),
+            srcSize: Vector2(144, 144),
+          ),
+          SpriteAnimationFrameData(
+            stepTime: 0.1,
+            srcPosition: Vector2(3527, 0),
+            srcSize: Vector2(144, 144),
+          ),
+          SpriteAnimationFrameData(
+            stepTime: 0.1,
+            srcPosition: Vector2(4700, 0),
+            srcSize: Vector2(144, 144),
+          ),
+        ]),
+      );
+
+      final idleImg = await images.load('player2/idle.png');
+      final idleAnimation = SpriteAnimation.fromFrameData(
+        idleImg,
+        SpriteAnimationData([
+          SpriteAnimationFrameData(
+            stepTime: 0.15,
+            srcPosition: Vector2(72, 94),
+            srcSize: Vector2(144, 144),
+          ),
+          SpriteAnimationFrameData(
+            stepTime: 0.15,
+            srcPosition: Vector2(373, 94),
+            srcSize: Vector2(144, 144),
+          ),
+        ]),
+      );
+
+      SpriteAnimation? bowAnimation;
+      try {
+        final bowImg = await images.load('player2/Ok atış.PNG');
+        bowAnimation = SpriteAnimation.fromFrameData(
+          bowImg,
+          SpriteAnimationData([
+            SpriteAnimationFrameData(stepTime: 0.15, srcPosition: Vector2(28, 28), srcSize: Vector2(144, 144)),
+            SpriteAnimationFrameData(stepTime: 0.15, srcPosition: Vector2(228, 28), srcSize: Vector2(144, 144)),
+          ], loop: false),
+        );
+      } catch (e) {
+        print('Error loading bow image: $e');
+        bowAnimation = sheet.createAnimation(row: 3, stepTime: 0.08, to: 4, loop: false);
+      }
+
+      SpriteAnimation? okWalkAnimation;
+      try {
+        final okWalkImg = await images.load('player2/OkWalk.PNG');
+        okWalkAnimation = SpriteAnimation.fromFrameData(
+          okWalkImg,
+          SpriteAnimationData([
+            SpriteAnimationFrameData(stepTime: 0.1, srcPosition: Vector2(21, 0), srcSize: Vector2(144, 144)),
+            SpriteAnimationFrameData(stepTime: 0.1, srcPosition: Vector2(1199, 0), srcSize: Vector2(144, 144)),
+            SpriteAnimationFrameData(stepTime: 0.1, srcPosition: Vector2(2368, 0), srcSize: Vector2(144, 144)),
+            SpriteAnimationFrameData(stepTime: 0.1, srcPosition: Vector2(3527, 0), srcSize: Vector2(144, 144)),
+            SpriteAnimationFrameData(stepTime: 0.1, srcPosition: Vector2(4700, 0), srcSize: Vector2(144, 144)),
+          ]),
+        );
+      } catch (e) {
+        print('Error loading OkWalk.PNG: $e');
+        okWalkAnimation = walkAnimation;
+      }
+
+      SpriteAnimation? deathAnimation;
+      try {
+        final deathImg = await images.load('player2/Death.png');
+        deathAnimation = SpriteAnimation.fromFrameData(
+          deathImg,
+          SpriteAnimationData([
+            SpriteAnimationFrameData(stepTime: 0.15, srcPosition: Vector2(21, 0), srcSize: Vector2(144, 144)),
+            SpriteAnimationFrameData(stepTime: 0.15, srcPosition: Vector2(1199, 0), srcSize: Vector2(144, 144)),
+            SpriteAnimationFrameData(stepTime: 0.15, srcPosition: Vector2(2368, 0), srcSize: Vector2(144, 144)),
+            SpriteAnimationFrameData(stepTime: 0.15, srcPosition: Vector2(3527, 0), srcSize: Vector2(144, 144)),
+            SpriteAnimationFrameData(stepTime: 0.15, srcPosition: Vector2(4700, 0), srcSize: Vector2(144, 144)),
+          ], loop: false),
+        );
+      } catch (e) {
+        print('Error loading Death.png: $e');
+        deathAnimation = sheet.createAnimation(row: 4, stepTime: 0.15, to: 6, loop: false);
+      }
+
       animations = {
-        PlayerState.idle: sheet.createAnimation(row: 0, stepTime: 0.15, to: 6),
-        PlayerState.walk: sheet.createAnimation(row: 1, stepTime: 0.1, to: 6),
+        PlayerState.idle: idleAnimation,
+        PlayerState.walk: walkAnimation,
+        PlayerState.bowWalk: okWalkAnimation,
         PlayerState.jump: sheet.createAnimation(row: 5, stepTime: 0.1, to: 6),
+        PlayerState.bowAttack: bowAnimation,
+        PlayerState.walkBowAttack: bowAnimation,
         PlayerState.attack1: sheet.createAnimation(
           row: 3,
           stepTime: 0.08,
@@ -163,12 +269,7 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
           to: 3,
           loop: false,
         ),
-        PlayerState.death: sheet.createAnimation(
-          row: 4,
-          stepTime: 0.15,
-          to: 6,
-          loop: false,
-        ),
+        PlayerState.death: deathAnimation,
       };
     } else {
       // Player 1: Ayrı dosyalardan yükle
@@ -207,6 +308,7 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
       animations = {
         PlayerState.idle: createAnim(idleImg),
         PlayerState.walk: createAnim(walkImg),
+        PlayerState.bowWalk: createAnim(walkImg), // Player 1 doesn't have bow anims
         PlayerState.jump: createAnim(jumpImg),
         PlayerState.attack1: createAnim(
           attack1Img,
@@ -218,6 +320,11 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
           stepTime: 0.08,
           loop: false,
         ),
+        PlayerState.bowAttack: createAnim(
+          attack1Img,
+          stepTime: 0.08,
+          loop: false,
+        ),
         PlayerState.walkAttack1: createAnim(
           walkAttack1Img,
           stepTime: 0.08,
@@ -225,6 +332,11 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
         ),
         PlayerState.walkAttack2: createAnim(
           walkAttack2Img,
+          stepTime: 0.08,
+          loop: false,
+        ),
+        PlayerState.walkBowAttack: createAnim(
+          walkAttack1Img,
           stepTime: 0.08,
           loop: false,
         ),
@@ -400,8 +512,8 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
 
     // World bounds
     if (gameRef.levelManager.state == LevelState.transitioning) {
-      // Asansör transition - oyuncuyu asansör bölgesinde tut (sağ tarafta)
-      final elevatorX = 2000 - 80; // Asansör pozisyonu
+      // Asansör transition - oyuncuyu asansör bölgesinde tut
+      final elevatorX = 1000.0; // Asansör pozisyonu
       if (position.x < elevatorX - 100) position.x = elevatorX - 100;
       if (position.x > elevatorX + 50) position.x = elevatorX + 50;
     } else {
@@ -447,7 +559,8 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     if (!isGrounded) {
       current = PlayerState.jump;
     } else if (velocity.x.abs() > 0.1) {
-      current = PlayerState.walk;
+      final statsService = PlayerStatsService();
+      current = statsService.isRangedWeapon ? PlayerState.bowWalk : PlayerState.walk;
     } else {
       current = PlayerState.idle;
     }
@@ -556,9 +669,9 @@ class Player extends SpriteAnimationGroupComponent<PlayerState>
     
     // Attack animasyonu
     if (velocity.x.abs() > 0.1) {
-      current = PlayerState.walkAttack1;
+      current = PlayerState.walkBowAttack;
     } else {
-      current = PlayerState.attack1;
+      current = PlayerState.bowAttack;
     }
     animationTicker?.reset();
     
